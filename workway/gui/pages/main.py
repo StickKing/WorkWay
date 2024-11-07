@@ -1,0 +1,1 @@
+"""Module contain main page."""

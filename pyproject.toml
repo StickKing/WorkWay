@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "WorkWay"
+version = "0.1.0"
+description = "WorkWay."
+authors = ["Anton Panteleev <mainsample@yandex.ru>"]
+readme = "README.md"
+license = "MIT"
+packages = [{include = "workway"}]
+repository = "https://github.com/StickKing/WorkWay"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+lildb = "*"
+flet = "^0.24.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+ignore = ["ANN401", "I001", "PYI034"]
+
+unfixable = [
+    "F401",
+    "PLR5501",
+]
