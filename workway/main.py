@@ -1,13 +1,15 @@
 """Module contain app."""
 # from flet import app
 from flet import Page
+
+from .core import Core
 from .gui.base import MainComponent
-from .core.component import Core
 
 
 def main(page: Page) -> None:
     """Create base app."""
-    core = Core("local.db")
+    core = Core()
+    core.money.all()
     page.views.clear()
     page.views.append(MainComponent(core))
     page.update()

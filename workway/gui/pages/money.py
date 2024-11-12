@@ -1,23 +1,24 @@
 """Module contain rate and bonus page."""
 from functools import cached_property
-from typing import TYPE_CHECKING, Any
-from flet import Text
+from typing import TYPE_CHECKING
+from typing import Any
+
+from flet import AlertDialog
+from flet import Checkbox
 from flet import Column
-from flet import ElevatedButton
 from flet import ControlEvent
+from flet import ElevatedButton
+from flet import KeyboardType
 from flet import ListTile
 from flet import PopupMenuButton
 from flet import PopupMenuItem
-from flet import icons
-from flet import AlertDialog
+from flet import Text
 from flet import TextField
-from flet import Checkbox
-from flet import KeyboardType
-
+from flet import icons
 
 
 if TYPE_CHECKING:
-    from workway.core.component import Core
+    from workway.core.pages import Money
 
 
 __all__ = (
@@ -28,8 +29,7 @@ __all__ = (
 class Rate(ListTile):
     """Rate gui element."""
 
-    def __init__(self, core: Any, rate) -> None:
-        self.core: Core = core
+    def __init__(self, rate) -> None:
         self.rate = rate
         super().__init__(
             leading=Text("💰"),
@@ -132,9 +132,9 @@ class RateModal(AlertDialog):
 class MoneyPage(Column):
     """Money page contain controls for CRUD rate and bonus."""
 
-    def __init__(self, core) -> None:
+    def __init__(self, money) -> None:
         """Initialize."""
-        self.core: Core = core
+        self.money = money
         super().__init__(
             controls=self.get_controls(),
         )

@@ -1,19 +1,21 @@
 """Module contain base elements."""
 from typing import TYPE_CHECKING
-from flet import View
+
+from flet import AppBar
+from flet import ControlEvent
 from flet import NavigationBar
 from flet import NavigationBarDestination
-from flet import icons
-from flet import AppBar
-from flet import Text
-from flet import ControlEvent
 from flet import SafeArea
+from flet import Text
+from flet import View
+from flet import icons
 from flet_core.control import Control
+
 from .pages import MoneyPage
 
 
 if TYPE_CHECKING:
-    from workway.core.component import Core
+    from workway.core import Core
 
 
 __all__ = (
@@ -50,7 +52,7 @@ class MainComponent(View):
             case 0:
                 self.content = Text("view control 1")
             case 1:
-                self.content = MoneyPage(self.core)
+                self.content = MoneyPage(self.core.money)
 
     @property
     def content(self) -> Control:

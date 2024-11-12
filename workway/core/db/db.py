@@ -1,41 +1,41 @@
 """Module contain component with business logic."""
 from __future__ import annotations
+
+import sqlite3
 from typing import Any
+
 from lildb import DB
-from lildb import Table
-from lildb.column_types import Integer, Real, Text
-from .db_component import ForeignKey, CreateTable
+from lildb.column_types import Integer
+from lildb.column_types import Real
+from lildb.column_types import Text
+
+from .column import ForeignKey
+from .operation import CreateTable
+from .tables import RateTable
 
 
-class RateTable(Table):
-    """Rage table."""
-
-    name = "Rate"
-
-    def adding(self, data: dict[str, Any]) -> None:
-        """Adding rate in table."""
-        if data["type"]:
-            data.pop("hours")
-        data["type"] = "hour" if data["type"] else "shift"
-        self.insert(data)
-
-
-class Core(DB):
+class DataBase(DB):
     """Component with business logic."""
 
-    rate = RateTable()
+    # rate = RateTable("rate")
 
     def __init__(
         self,
         path: str,
         *,
         use_datacls: bool = False,
-        debug: bool = False,
         **connect_params: Any,
     ) -> None:
-        super().__init__(path, use_datacls=use_datacls, debug=debug, **connect_params)
+        self.path = path
+        self.connect: sqlite3.Connection = sqlite3.connect(
+            path,
+            **connect_params,
+        )
+        self.use_datacls = use_datacls
+        self.table_names: set = set()
         self.create_table = CreateTable(self)
         self.initialize_db()
+        self.initialize_tables()
 
     def initialize_db(self) -> None:
         """Create all tables."""
