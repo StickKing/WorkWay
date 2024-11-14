@@ -7,52 +7,33 @@ from typing import Literal
 
 
 if TYPE_CHECKING:
+    from .core import Core
     from .db import DataBase
 
 
 class Page(ABC):
     """Page cls with all logic."""
     
-    def __init__(self, db) -> None:
+    def __init__(self, core, db) -> None:
         """Initialize."""
         self.db: DataBase = db
-    
-    @abstractmethod
-    def add(self) -> Any:
-        """Adding in data."""
-        ...
-    
-    @abstractmethod
-    def one(self) -> Any:
-        """Get page data."""
-        ...
-    
-    @abstractmethod
-    def all(self) -> Any:
-        """Get page data."""
-        ...
-        
-    def filter(self, *args: Any, **kwargs: Any) -> Any:
-        """Filtred page data."""
-        raise NotImplementedError
+        self.core: Core = core
         
 
 class Money(Page):
     
-    def add(self, data) -> None:
+    def add_rate(self, data: dict) -> None:
         """Add new rate."""
         if data["type"]:
             data.pop("hours")
+        data["name"] = data["name"] or data["value"]
         data["type"] = "hour" if data["type"] else "shift"
         self.db.rate.insert(data)
     
-    def all(self) -> tuple:
-        """Get all data."""
-        return (self.db.rate.all(), self.db.bonus.all())
+    def all_rate(self) -> list:
+        """Getting rate."""
+        return self.db.rate.all()
     
-    def one(self):
-        return None
-    
-    def filter(self, type: Literal["rate", "bonus"]):
-        """Get data by type."""
-        return 
+    def all_bonus(self) -> list:
+        """Getting rate."""
+        return self.db.rate.all()

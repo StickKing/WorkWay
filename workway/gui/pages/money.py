@@ -47,9 +47,9 @@ class Rate(ListTile):
 
 class RateModal(AlertDialog):
 
-    def __init__(self, core) -> None:
+    def __init__(self, money) -> None:
         """Initialize."""
-        self.core: Core = core
+        self.money: Money = money
 
         self.name = TextField(
             label="Наименование",
@@ -91,25 +91,30 @@ class RateModal(AlertDialog):
         """Close this modal."""
         self.page.close(self)  # type: ignore
 
-    def save_modal(self, event: ControlEvent) -> None:
-        """Save this modal."""
-        error_flag = False
-        self.value.error_text = None
-        self.hours.error_text = None
+    @property
+    def is_valid(self) -> bool:
+        """Validate data."""
+        error_flag = True
 
         if not self.value.value:
             self.value.error_text = "Обязательное поле"
-            error_flag = True
+            error_flag = False
 
         if not self.type.value and not self.hours.value:
             self.hours.error_text = "Обязательное поле"
-            error_flag = True
+            error_flag = False
+        return error_flag
 
-        if error_flag:
+    def save_modal(self, event: ControlEvent) -> None:
+        """Save this modal."""
+        self.value.error_text = None
+        self.hours.error_text = None
+
+        if self.is_valid is False:
             self.update()
             return
 
-        self.core.rate.adding(
+        self.money.add_rate(
             {
                 "name": self.name.value,
                 "value": self.value.value,
@@ -134,12 +139,12 @@ class MoneyPage(Column):
 
     def __init__(self, money) -> None:
         """Initialize."""
-        self.money = money
+        self.money: Money = money
         super().__init__(
             controls=self.get_controls(),
         )
 
-    def get_controls(self):
+    def get_controls(self) -> list:
         """Create controls."""
         return [
             Text("Ставка"),
@@ -155,15 +160,17 @@ class MoneyPage(Column):
 
     @cached_property
     def rates(self) -> Column:
-        rates = self.core.rate.all()  # noqa: F841
+        rates = [Rate(rate) for rate in self.money.all_rate()]  # noqa: F841
+        add_button = ElevatedButton(
+            "Добавить ставку",
+            on_click=lambda e: self.page.open(  # type: ignore
+                RateModal(self.money)
+            ),
+        )
         return Column(
             controls=[
-                ElevatedButton(
-                    "Добавить ставку",
-                    on_click=lambda e: self.page.open(  # type: ignore
-                        RateModal(self.core)
-                    ),
-                )
+                add_button,
+                *rates,
             ],
         )
 
@@ -174,7 +181,7 @@ class MoneyPage(Column):
 
     @cached_property
     def bonuses(self) -> Column:
-        bonuses = self.core.bonus.all()  # noqa: F841
+        bonuses = self.money.all_bonus
         return Column(
             controls=[
                 ElevatedButton("Добавить надбавку", on_click=self.add_bonus)

@@ -19,6 +19,6 @@ class Core:
         return cls._instance
 
     def __init__(self) -> None:
-        self.db = DataBase("work.db")
-        self.money = Money(self.db)
+        self.db = DataBase("work.db", use_datacls=True)
+        self.money = Money(self, self.db)
         
