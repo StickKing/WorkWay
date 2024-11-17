@@ -9,15 +9,13 @@ from lildb.rows import _RowDataClsMixin
 class RateRow(_RowDataClsMixin):
 
     _by_default: float
-    
+
     def by_default(self) -> bool:
         """By default change to bool."""
         return bool(self._by_default)
-        
-    
+
 
 class RateTable(Table):
     """Rage table."""
-    
-    row_cls = RateRow
 
+    row_cls = RateRow

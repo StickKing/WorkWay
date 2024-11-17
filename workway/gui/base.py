@@ -6,6 +6,7 @@ from flet import ControlEvent
 from flet import NavigationBar
 from flet import NavigationBarDestination
 from flet import SafeArea
+from flet import ScrollMode
 from flet import Text
 from flet import View
 from flet import icons
@@ -44,6 +45,7 @@ class MainComponent(View):
                 on_change=self.change_page,
             ),
             appbar=AppBar(visible=False),
+            scroll=ScrollMode.HIDDEN,
         )
 
     def change_page(self, event: ControlEvent) -> None:

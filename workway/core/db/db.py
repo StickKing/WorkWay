@@ -11,7 +11,6 @@ from lildb.column_types import Text
 
 from .column import ForeignKey
 from .operation import CreateTable
-from .tables import RateTable
 
 
 class DataBase(DB):
@@ -48,6 +47,7 @@ class DataBase(DB):
                 "by_default": Real(default=0),  # type: ignore
                 "type": Text(default="shift"),
                 "hours": Integer(default=8),
+                "state": Integer(default=1),
             }
         )
         self.create_table(
@@ -57,6 +57,7 @@ class DataBase(DB):
                 "name": Text(default=""),
                 "value": Real(default=0),  # type: ignore
                 "by_default": Real(default=0),  # type: ignore
+                "state": Integer(default=1),
             }
         )
         self.create_table(

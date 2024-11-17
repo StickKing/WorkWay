@@ -8,9 +8,9 @@ from .pages import Money
 
 
 class Core:
-    
+
     _instance = None
-    
+
     def __new__(cls: type[Core], *args: Any, **kwargs: Any) -> Core:
         """Singleton."""
         if cls._instance is not None:
@@ -21,4 +21,3 @@ class Core:
     def __init__(self) -> None:
         self.db = DataBase("work.db", use_datacls=True)
         self.money = Money(self, self.db)
-        
