@@ -265,9 +265,9 @@ class UpdateBonusModal(BonusModal):
             self.bonus_item.state = 2
             self.bonus_item.change()
 
-            self.new_rate = self.money.add_bonus(new_bonus)
+            self.new_bonus = self.money.add_bonus(new_bonus)
             self.page.close(self)
             return
 
-        self.new_rate = self.money.update_item(new_bonus, self.bonus_item)
+        self.new_bonus = self.money.update_item(new_bonus, self.bonus_item)
         self.page.close(self)  # type: ignore

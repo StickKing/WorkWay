@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any
 
 from .db import DataBase
+from .pages import Main
 from .pages import Money
 
 
@@ -21,3 +22,4 @@ class Core:
     def __init__(self) -> None:
         self.db = DataBase("work.db", use_datacls=True)
         self.money = Money(self, self.db)
+        self.main = Main(self, self.db)

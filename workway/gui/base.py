@@ -3,16 +3,17 @@ from typing import TYPE_CHECKING
 
 from flet import AppBar
 from flet import ControlEvent
+from flet import FloatingActionButton
 from flet import NavigationBar
 from flet import NavigationBarDestination
 from flet import SafeArea
 from flet import ScrollMode
-from flet import Text
 from flet import View
 from flet import icons
 from flet_core.control import Control
 
 from .pages import MoneyPage
+from .pages.main import MainPage
 
 
 if TYPE_CHECKING:
@@ -46,20 +47,32 @@ class MainComponent(View):
             ),
             appbar=AppBar(visible=False),
             scroll=ScrollMode.HIDDEN,
+            floating_action_button=FloatingActionButton(
+                icon=icons.ADD,
+                on_click=self.floating_action,
+            ),
+            controls=[
+                SafeArea(MainPage(self.core.main)),
+            ],
         )
+
+    def floating_action(self, event: ControlEvent) -> None:
+        self.content.floating_action(event)
 
     def change_page(self, event: ControlEvent) -> None:
         """Navigation by main menu."""
         match event.control.selected_index:
             case 0:
-                self.content = Text("view control 1")
+                self.floating_action_button.visible = True
+                self.content = MainPage(self.core.main)
             case 1:
+                self.floating_action_button.visible = False
                 self.content = MoneyPage(self.core.money)
 
     @property
     def content(self) -> Control:
         """Fetch current control."""
-        return self.controls[0]
+        return self.controls[0].content
 
     @content.setter
     def content(self, control: Control) -> None:

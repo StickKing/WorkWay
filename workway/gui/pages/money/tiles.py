@@ -56,6 +56,8 @@ class RateTile(ListTile):
     def update_rate(self, event: ControlEvent) -> None:
         """Update rate item after update."""
         modal: UpdateRateModal = event.control
+        if modal.new_rate is None:
+            return
         self.rate = modal.new_rate
         self.title.value = self.rate.name
         self.subtitle.value = self.rate.value
@@ -103,7 +105,9 @@ class BonusTile(ListTile):
     def update_bonus(self, event: ControlEvent) -> None:
         """Update rate item after update."""
         modal: UpdateBonusModal = event.control
-        self.bonus = modal.new_rate
+        if modal.new_bonus is None:
+            return
+        self.bonus = modal.new_bonus
         self.title.value = self.bonus.name
         self.subtitle.value = self.bonus.value
         self.update()
