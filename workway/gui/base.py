@@ -12,8 +12,8 @@ from flet import View
 from flet import icons
 from flet_core.control import Control
 
+from .pages import MainPage
 from .pages import MoneyPage
-from .pages.main import MainPage
 
 
 if TYPE_CHECKING:

@@ -1,5 +1,6 @@
 """Module contain app."""
 # from flet import app
+from flet import ControlEvent
 from flet import Page
 
 from .core import Core
@@ -12,6 +13,13 @@ def main(page: Page) -> None:
     page.views.clear()
     page.views.append(MainComponent(core))
     page.update()
+
+    def view_pop(event: ControlEvent) -> None:
+        """Back to previous view."""
+        page.views.pop()
+        page.update()
+
+    page.on_view_pop = view_pop
 
 
 

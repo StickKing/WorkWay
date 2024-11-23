@@ -12,7 +12,7 @@ from flet import TextField
 
 
 if TYPE_CHECKING:
-    from workway.core.pages import Money
+    from workway.core.subcores import Money
 
 
 class RateModal(AlertDialog):

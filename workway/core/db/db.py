@@ -11,18 +11,23 @@ from lildb.column_types import Text
 
 from .column import ForeignKey
 from .operation import CreateTable
+from .tables import BonusTable
+from .tables import RateTable
+from .tables import WorkTable
 
 
 class DataBase(DB):
     """Component with business logic."""
 
-    # rate = RateTable("rate")
+    rate = RateTable("rate")
+    bonus = BonusTable("bonus")
+    work = WorkTable("work")
 
     def __init__(
         self,
         path: str,
         *,
-        use_datacls: bool = False,
+        use_datacls: bool = True,
         **connect_params: Any,
     ) -> None:
         self.path = path
@@ -61,12 +66,13 @@ class DataBase(DB):
             }
         )
         self.create_table(
-            "WorkDay",
+            "Work",
             {
                 "id": Integer(primary_key=True),
                 "name": Text(default=""),
-                "value": Real(default=0),  # type: ignore
-                "by_default": Real(default=0),  # type: ignore
+                "start_datetime": Text(),
+                "end_datetime": Text(),
+                "hours": Integer(),
                 "rate_id": Integer(),
             },
             foreign_keys=(
@@ -76,11 +82,11 @@ class DataBase(DB):
         self.create_table(
             "Work_Bonus",
             {
-                "workday_id": Integer(),
+                "work_id": Integer(),
                 "bonus_id": Integer(),
             },
             foreign_keys=(
-                ForeignKey("workday_id", "WorkDay", "id", on_delete="cascade"),
+                ForeignKey("work_id", "Work", "id", on_delete="cascade"),
                 ForeignKey("bonus_id", "Bonus", "id", on_delete="cascade"),
             )
         )

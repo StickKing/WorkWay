@@ -15,7 +15,7 @@ from .tiles import RateTile
 
 
 if TYPE_CHECKING:
-    from workway.core.pages import Money
+    from workway.core.subcores import Money
 
 
 __all__ = (

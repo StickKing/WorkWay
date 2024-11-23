@@ -4,8 +4,8 @@ from __future__ import annotations
 from typing import Any
 
 from .db import DataBase
-from .pages import Main
-from .pages import Money
+from .subcores import Main
+from .subcores import Money
 
 
 class Core:
