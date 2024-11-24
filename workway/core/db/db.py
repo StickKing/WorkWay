@@ -74,6 +74,7 @@ class DataBase(DB):
                 "end_datetime": Text(),
                 "hours": Integer(),
                 "rate_id": Integer(),
+                "value": Real(),
             },
             foreign_keys=(
                 ForeignKey("rate_id", "Rate", "id"),

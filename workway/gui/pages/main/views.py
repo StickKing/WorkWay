@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from flet import AppBar
+from flet import Checkbox
 from flet import Chip
 from flet import Column
 from flet import ControlEvent
@@ -11,8 +12,10 @@ from flet import DatePicker
 from flet import Divider
 from flet import Dropdown
 from flet import ElevatedButton
+from flet import KeyboardType
 from flet import ResponsiveRow
 from flet import ScrollMode
+from flet import SnackBar
 from flet import Text
 from flet import TextField
 from flet import TimePicker
@@ -35,6 +38,7 @@ class CreateWorkDayView(View):
         """Initialize."""
         self.core: WorkMaker = main
         today = datetime.now()
+        self.rework_flag = False
 
         self.rates: dict[str, RateRow] = self.core.get_rates()
         self.bonuses: list[BonusRow] = self.core.get_bonuses()
@@ -57,6 +61,27 @@ class CreateWorkDayView(View):
 
         # Controls
 
+        # rework controls
+        self.rework_lable = Text("Обнаружена переработка")
+        self.rework_checkbox = Checkbox("Не учитывать")
+        self.rework_percent = TextField(
+            label="% ставки / час",
+            keyboard_type=KeyboardType.NUMBER,
+        )
+        self.rework_fix_sum = TextField(
+            label="Фиксированная сумма",
+            keyboard_type=KeyboardType.NUMBER,
+        )
+        self.rework_column = Column(
+            [
+                self.rework_lable,
+                self.rework_checkbox,
+                self.rework_percent,
+                self.rework_fix_sum,
+            ],
+            visible=False,
+        )
+
         # text field
         self.name_field = TextField(
             value="",
@@ -65,22 +90,36 @@ class CreateWorkDayView(View):
         )
 
         # labels
-        self.start_dt_label = Text(
+        self.start_dt_label = ElevatedButton(
             self.start_dt.strftime(r"%d.%m.%y"),
             col={"md": 2},
-        )
-        self.start_tm_label = Text(
-            self.start_dt.strftime(r"%H:%M"),
-            col={"md": 2},
+            on_click=lambda e: self.page.open(
+                self.start_dt_picker,
+            ),
         )
 
-        self.end_dt_label = Text(
-            self.start_dt.strftime(r"%d.%m.%y"),
-            col={"md": 2},
-        )
-        self.end_tm_label = Text(
+        self.start_tm_label = ElevatedButton(
             self.start_dt.strftime(r"%H:%M"),
             col={"md": 2},
+            on_click=lambda e: self.page.open(
+                self.start_tm_picker,
+            ),
+        )
+
+        self.end_dt_label = ElevatedButton(
+            self.start_dt.strftime(r"%d.%m.%y"),
+            col={"md": 2},
+            on_click=lambda e: self.page.open(
+                self.end_dt_picker,
+            ),
+        )
+
+        self.end_tm_label = ElevatedButton(
+            self.start_dt.strftime(r"%H:%M"),
+            col={"md": 2},
+            on_click=lambda e: self.page.open(
+                self.end_tm_picker,
+            ),
         )
         self.bonus_label = Text("Надбавки")
 
@@ -174,24 +213,6 @@ class CreateWorkDayView(View):
                                 self.start_tm_label,
                             ]
                         ),
-                        ResponsiveRow(
-                            controls=[
-                                ElevatedButton(
-                                    "Задать дату",
-                                    on_click=lambda e: self.page.open(
-                                        self.start_dt_picker,
-                                    ),
-                                    col={"md": 2},
-                                ),
-                                ElevatedButton(
-                                    "Задать время",
-                                    on_click=lambda e: self.page.open(
-                                        self.start_tm_picker,
-                                    ),
-                                    col={"md": 2},
-                                )
-                            ]
-                        ),
                         Text("Конец рабочего дня"),
                         ResponsiveRow(
                             controls=[
@@ -201,26 +222,13 @@ class CreateWorkDayView(View):
                         ),
                         ResponsiveRow(
                             controls=[
-                                ElevatedButton(
-                                    "Задать дату",
-                                    on_click=lambda e: self.page.open(
-                                        self.end_dt_picker,
-                                    ),
-                                    col={"md": 3},
-                                ),
-                                ElevatedButton(
-                                    "Задать время",
-                                    on_click=lambda e: self.page.open(
-                                        self.end_tm_picker,
-                                    ),
-                                    col={"md": 3},
-                                ),
                                 self.end_dt_tm_by_rate_button,
                             ]
                         ),
                         Divider(),
                     ],
                 ),
+                self.rework_column,
                 ElevatedButton(
                     "Сохранить",
                     on_click=self.save_work,
@@ -231,19 +239,19 @@ class CreateWorkDayView(View):
     def select_start_date(self, event: ControlEvent) -> None:
         """After seleted date change gui."""
         self.start_dt = event.control.value
-        self.start_dt_label.value = self.start_dt.strftime(r"%d.%m.%y")
+        self.start_dt_label.text = self.start_dt.strftime(r"%d.%m.%y")
         self.update()
 
     def select_start_tm(self, event: ControlEvent) -> None:
         """After seleted date change gui."""
         self.start_tm = event.control.value
-        self.start_tm_label.value = self.start_tm.strftime(r"%H:%M")
+        self.start_tm_label.text = self.start_tm.strftime(r"%H:%M")
         self.update()
 
     def select_end_date(self, event: ControlEvent) -> None:
         """After seleted date change gui."""
         self.end_dt = self.end_dt_picker.value
-        self.end_dt_label.value = self.end_dt.strftime(  # type: ignore
+        self.end_dt_label.text = self.end_dt.strftime(  # type: ignore
             r"%d.%m.%y",
         )
         self.update()
@@ -251,7 +259,7 @@ class CreateWorkDayView(View):
     def select_end_tm(self, event: ControlEvent) -> None:
         """After seleted date change gui."""
         self.end_tm = self.end_tm_picker.value
-        self.end_tm_label.value = self.end_tm.strftime(  # type: ignore
+        self.end_tm_label.text = self.end_tm.strftime(  # type: ignore
             r"%H:%M",
         )
         self.update()
@@ -306,13 +314,56 @@ class CreateWorkDayView(View):
             error_flag = False
             self.rate_dropdown.error_text = "Нужно выбрать ставку"
 
+        if self.start_dt > self.end_dt:
+            error_flag = False
+            self.page.snack_bar = SnackBar(
+                Text("Дата начала не может быть меньше даты конца")
+            )
+            self.page.snack_bar.open = True
+            self.page.update()
+
+        work_hours = (self.end_dt - self.start_dt).seconds // 60 // 60
+
+        if self.rework_flag is False and work_hours > self.rate.hours:
+            error_flag = False
+            self.rework_lable.value = "Обнаружена переработка {}".format(
+                work_hours - self.rate.hours,
+            )
+            self.rework_column.visible = True
+            self.rework_checkbox.autofocus = True
+            self.rework_flag = True
+            return error_flag
+
+        if (
+            self.rework_flag and
+            self.rework_percent.value and
+            self.rework_percent.value.isdigit() is False
+        ):
+            self.rework_percent.error_text = "Процент должен быть целым числом"
+            error_flag = False
+
         return error_flag
+
+    def create_rework(self) -> dict[str, int | float] | None:
+        """Create rework if it exists."""
+        if not self.rework_flag or self.rework_checkbox.value:
+            return None
+        percent = self.rework_percent.value
+        if percent:
+            return {"%": int(percent)}
+        fix_sum = self.rework_fix_sum.value
+        if fix_sum:
+            return {"sum": float(fix_sum)}
+        return None
 
     def save_work(self, event: ControlEvent) -> None:
         """Validate controls value and save work day."""
         if self.is_valid is False:
             self.update()
             return
+
+        rework = self.create_rework()
+
         self.core.save_work(
             self.rate,  # type: ignore
             self.selected_bonuses,
@@ -321,7 +372,7 @@ class CreateWorkDayView(View):
             self.end_dt,
             self.end_tm,
             name=self.name_field.value,
+            rework=rework,
         )
         self.page.views.pop()
         self.page.update()
-

@@ -118,7 +118,7 @@ class WorkMaker(BaseCore):
         end_dt: datetime,
         end_tm: time,
         name: str | None = "",
-        recycling: int | None = None,
+        rework: dict[str, int | float] | None = None,
     ) -> None:
         start_datetime = datetime(
             year=start_dt.year,
@@ -135,12 +135,37 @@ class WorkMaker(BaseCore):
             minute=end_tm.minute,
         )
 
+        # Rate
+        money_value = 0
+        match rate.type:
+            case "shift":
+                money_value += rate.value
+            case "hours":
+                hours = (end_datetime - start_datetime).seconds // 60 // 60
+                money_value += hours * rate.value
+
+        # Rework
+        if rework:
+            match next(rework.__iter__()):
+                case "%":
+                    hours = (end_datetime - start_datetime).seconds // 60 // 60
+                    rework_hours = hours - rate.hours
+                    money_percent = (rate.value / 100) * rework["%"]
+                    money_value += rework_hours * money_percent
+                case "sum":
+                    money_value += rework["sum"]
+
+        # Bonus
+        for bonus in bonuses:
+            money_value += bonus.value
+
         work_day = {
             "name": name,
             "start_datetime": start_datetime,
             "end_datetime": end_datetime,
             "hours": 0,
             "rate_id": rate.id,
+            "value": money_value,
         }
         self.db.work.add(work_day)
 
@@ -208,14 +233,10 @@ class Main(BaseCore):
         }
         return map(lambda x: str(x), sorted(years)), months_dict
 
-    def get_works(self, year: str, month: str) -> list["WorkRow"]:
-        result = self.db.execute(
-            "SELECT substr(start_datetime, 1,4) from Work",
-            result=ResultFetch.fetchall
-        )
-        # print(self.db.work.get(id=1))
+    def get_works(self, month: str, year: str) -> list["WorkRow"]:
+        """Get works by year and month."""
         stmt = "{} == '{}' AND {} == '{}' OR {} == '{}' AND {} == '{}'"
-        test = self.db.work.select(
+        return self.db.work.select(
             condition=stmt.format(
                 "substr(start_datetime, 1, 4)",
                 year,
@@ -227,5 +248,16 @@ class Main(BaseCore):
                 month,
             )
         )
-        print(test)
-        # return self.db.work.all()
+
+    def fetch_value_by_works(self, work: "WorkRow") -> float:
+        """Fetch money value by work."""
+        value = 0
+        rate = work.rate
+        bonuses = work.bonuses
+
+        if rate.type == "shift":
+            value += rate.value
+
+        for bonus in bonuses:
+            value += bonus.value
+        return value

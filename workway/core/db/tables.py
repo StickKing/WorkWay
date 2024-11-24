@@ -68,6 +68,7 @@ class WorkRow(_RowDataClsMixin):
     end_datetime: str
     hours: int
     rate_id: int
+    value: float
 
     # Required fields for row-cls
     table: Table
@@ -76,7 +77,7 @@ class WorkRow(_RowDataClsMixin):
     @property
     def start_dttm(self) -> datetime:
         """Return datetime from timestamp."""
-        return datetime.fromisoformat(self._start_datetime)
+        return datetime.fromisoformat(self.start_datetime)
 
     @start_dttm.setter
     def start_dttm(self, value: datetime) -> None:
@@ -86,7 +87,7 @@ class WorkRow(_RowDataClsMixin):
     @property
     def end_dttm(self) -> datetime:
         """Return datetime from timestamp."""
-        return datetime.fromisoformat(self._end_datetime)
+        return datetime.fromisoformat(self.end_datetime)
 
     @end_dttm.setter
     def end_dttm(self, value: datetime) -> None:
