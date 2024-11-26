@@ -2,11 +2,21 @@
 from functools import cached_property
 from typing import TYPE_CHECKING
 
+from flet import BorderRadius
+from flet import ButtonStyle
 from flet import Column
+from flet import Container
 from flet import ControlEvent
-from flet import ElevatedButton
+from flet import IconButton
+from flet import MainAxisAlignment
+from flet import Margin
+from flet import Padding
+from flet import Row
 from flet import ScrollMode
 from flet import Text
+from flet import TextThemeStyle
+from flet import colors
+from flet import icons
 
 from .modals import BonusModal
 from .modals import RateModal
@@ -37,10 +47,41 @@ class MoneyPage(Column):
     def get_controls(self) -> list:
         """Create controls."""
         return [
-            Text("Ставка"),
-            self.rates,
-            Text("Надбавки"),
-            self.bonuses,
+            Container(
+                content=Column([
+                    Text(
+                        "Ставки 💰",
+                        theme_style=TextThemeStyle.TITLE_LARGE,
+                    ),
+                    self.rates,
+                ]),
+                margin=Margin(left=0, top=0, right=0, bottom=10),
+                padding=Padding(left=15, top=10, right=0, bottom=10),
+                bgcolor=colors.SURFACE_VARIANT,
+                border_radius=BorderRadius(
+                    top_left=0,
+                    top_right=0,
+                    bottom_left=12,
+                    bottom_right=12,
+                ),
+            ),
+            Container(
+                content=Column([
+                    Text(
+                        "Надбавки 💸",
+                        theme_style=TextThemeStyle.TITLE_LARGE,
+                    ),
+                    self.bonuses,
+                ]),
+                bgcolor=colors.SURFACE_VARIANT,
+                padding=Padding(left=15, top=10, right=0, bottom=10),
+                border_radius=BorderRadius(
+                    top_left=12,
+                    top_right=12,
+                    bottom_left=0,
+                    bottom_right=0,
+                ),
+            ),
         ]
 
     def add_rate(self, event: ControlEvent) -> None:
@@ -50,7 +91,10 @@ class MoneyPage(Column):
         if modal.new_rate is None:
             return
 
-        self.rates.controls.insert(-1, RateTile(self.money, modal.new_rate))
+        self.rates.controls.insert(
+            -1,
+            RateTile(self.money, modal.new_rate),
+        )
         self.update()
 
     @cached_property
@@ -59,16 +103,24 @@ class MoneyPage(Column):
             RateTile(self.money, rate)
             for rate in self.money.all_rate()
         ]
-        add_button = ElevatedButton(
-            "Добавить ставку",
+        add_button = IconButton(
+            icon=icons.ADD,
+            style=ButtonStyle(bgcolor=colors.BLACK),
             on_click=lambda e: self.page.open(  # type: ignore
                 RateModal(self.money, self.add_rate)
             ),
+            width=50,
+            height=50,
         )
         return Column(
             controls=[
                 *rates,
-                add_button,
+                Row(
+                    [
+                        add_button,
+                    ],
+                    alignment=MainAxisAlignment.CENTER,
+                )
             ],
         )
 
@@ -79,7 +131,10 @@ class MoneyPage(Column):
         if modal.new_bonus is None:
             return
 
-        self.bonuses.controls.insert(-1, RateTile(self.money, modal.new_bonus))
+        self.bonuses.controls.insert(
+            -1,
+            BonusTile(self.money, modal.new_bonus),
+        )
         self.update()
 
     @cached_property
@@ -88,14 +143,23 @@ class MoneyPage(Column):
             BonusTile(self.money, bonus)
             for bonus in self.money.all_bonus()
         ]
+        add_button = IconButton(
+            icon=icons.ADD,
+            style=ButtonStyle(bgcolor=colors.BLACK),
+            on_click=lambda e: self.page.open(  # type: ignore
+                BonusModal(self.money, self.add_bonus)
+            ),
+            width=50,
+            height=50,
+        )
         return Column(
             controls=[
                 *bonuses,
-                ElevatedButton(
-                    "Добавить надбавку",
-                    on_click=lambda e: self.page.open(  # type: ignore
-                        BonusModal(self.money, self.add_bonus)
-                    ),
-                )
+                Row(
+                    [
+                        add_button,
+                    ],
+                    alignment=MainAxisAlignment.CENTER,
+                ),
             ],
         )

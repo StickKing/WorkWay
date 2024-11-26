@@ -32,6 +32,7 @@ class MainComponent(View):
         """Initialize main component."""
         self.core: Core = core
         super().__init__(
+            padding=0,
             navigation_bar=NavigationBar(
                 destinations=[
                     NavigationBarDestination(

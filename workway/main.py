@@ -2,6 +2,7 @@
 # from flet import app
 from flet import ControlEvent
 from flet import Page
+from flet import app
 
 from .core import Core
 from .gui.base import MainComponent
@@ -22,5 +23,4 @@ def main(page: Page) -> None:
     page.on_view_pop = view_pop
 
 
-
-# app(main)
+app(main)

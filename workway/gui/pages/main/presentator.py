@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 
 from flet import Column
 from flet import Container
-from flet import ListTile
 from flet import MainAxisAlignment
 from flet import Margin
 from flet import Row
@@ -39,13 +38,16 @@ class WorkTile(Container):
                 [
                     Container(
                         Text(work.name[:15], style=style),
-                        width=100,
+                        width=150,
                     ),
                     Container(
                         Text(dt, style=TextStyle(size=14)),
                         width=150,
                     ),
-                    Container(Text(f"+{work.value} руб.", style=style)),
+                    Container(
+                        Text(f"+{work.value} руб.", style=style),
+                        width=130,
+                    ),
                 ],
                 alignment=MainAxisAlignment.SPACE_BETWEEN,
             ),

@@ -2,6 +2,7 @@
 from typing import TYPE_CHECKING
 
 from flet import ControlEvent
+from flet import Icon
 from flet import ListTile
 from flet import PopupMenuButton
 from flet import PopupMenuItem
@@ -23,7 +24,8 @@ class RateTile(ListTile):
         self.money: Money = money
         self.rate = rate
         super().__init__(
-            leading=Text("💰"),
+            #leading=Text("💰"),
+            leading=Icon(icons.ATTACH_MONEY),
             title=Text(self.rate.name),
             subtitle=Text(self.rate.value),
             trailing=PopupMenuButton(
@@ -71,7 +73,8 @@ class BonusTile(ListTile):
         self.money: Money = money
         self.bonus = bonus
         super().__init__(
-            leading=Text("💸"),
+            # leading=Text("💸"),
+            leading=Icon(icons.ATTACH_MONEY),
             title=Text(self.bonus.name),
             subtitle=Text(self.bonus.value),
             trailing=PopupMenuButton(

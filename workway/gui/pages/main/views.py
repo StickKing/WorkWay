@@ -1,25 +1,33 @@
 """Module contain main page."""
 from datetime import datetime
 from datetime import timedelta
+from functools import cached_property
 from typing import TYPE_CHECKING
 
 from flet import AppBar
-from flet import Checkbox
+from flet import BorderRadius
 from flet import Chip
 from flet import Column
+from flet import Container
 from flet import ControlEvent
 from flet import DatePicker
 from flet import Divider
 from flet import Dropdown
 from flet import ElevatedButton
 from flet import KeyboardType
+from flet import Margin
+from flet import Padding
 from flet import ResponsiveRow
+from flet import Row
 from flet import ScrollMode
 from flet import SnackBar
+from flet import Switch
 from flet import Text
 from flet import TextField
+from flet import TextThemeStyle
 from flet import TimePicker
 from flet import View
+from flet import colors
 from flet import dropdown
 
 
@@ -62,8 +70,14 @@ class CreateWorkDayView(View):
         # Controls
 
         # rework controls
-        self.rework_lable = Text("Обнаружена переработка")
-        self.rework_checkbox = Checkbox("Не учитывать")
+        self.rework_lable = Text(
+            "Обнаружена переработка",
+            theme_style=TextThemeStyle.TITLE_MEDIUM,
+        )
+        self.rework_checkbox = Switch(
+            "Не учитывать",
+            value=False,
+        )
         self.rework_percent = TextField(
             label="% ставки / час",
             keyboard_type=KeyboardType.NUMBER,
@@ -72,14 +86,22 @@ class CreateWorkDayView(View):
             label="Фиксированная сумма",
             keyboard_type=KeyboardType.NUMBER,
         )
-        self.rework_column = Column(
-            [
+        self.rework_column = Container(
+            content=Column([
                 self.rework_lable,
                 self.rework_checkbox,
                 self.rework_percent,
                 self.rework_fix_sum,
-            ],
+            ]),
             visible=False,
+            bgcolor=colors.ON_ERROR,
+            border_radius=12,
+            padding=Padding(
+                left=10,
+                top=15,
+                right=10,
+                bottom=15,
+            ),
         )
 
         # text field
@@ -121,7 +143,10 @@ class CreateWorkDayView(View):
                 self.end_tm_picker,
             ),
         )
-        self.bonus_label = Text("Надбавки")
+        self.bonus_label = Text(
+            "Надбавки",
+            theme_style=TextThemeStyle.TITLE_MEDIUM,
+        )
 
         # pickers
         self.start_dt_picker = DatePicker(
@@ -150,11 +175,10 @@ class CreateWorkDayView(View):
 
         # dropdown
         self.rate_dropdown = Dropdown(
-            label="Ставка",
             options=[
                 dropdown.Option(
                     content=Text(
-                        f"{rate.name} - {rate.value}"
+                        f"{rate.name} +{rate.value} руб."
                     ),
                     key=key,
                 )
@@ -187,51 +211,122 @@ class CreateWorkDayView(View):
 
         # buttons
         self.end_dt_tm_by_rate_button = ElevatedButton(
-            "Задать по часам ставки",
+            "По часам ставки",
             on_click=self.select_end_tm_by_rate,
             col={"md": 3},
+        )
+
+        # work datetime control
+
+        start_container = Container(
+            content=Column([
+                Container(
+                    Text(
+                        "Начало рабочего дня",
+                        theme_style=TextThemeStyle.TITLE_MEDIUM,
+                    ),
+                    margin=Margin(left=0, top=0, right=0, bottom=5),
+                ),
+                Row(
+                    controls=[
+                        self.start_dt_label,
+                        self.start_tm_label,
+                    ],
+                ),
+            ]),
+        )
+
+        end_container = Container(
+            content=Column([
+                Container(
+                    Text(
+                        "Конец рабочего дня",
+                        theme_style=TextThemeStyle.TITLE_MEDIUM,
+                    ),
+                    margin=Margin(left=0, top=0, right=0, bottom=5),
+                ),
+                Row(
+                    controls=[
+                        self.end_dt_label,
+                        self.end_tm_label,
+                    ],
+                ),
+                self.end_dt_tm_by_rate_button,
+            ])
         )
 
         super().__init__(
             appbar=AppBar(
                 title=Text("Создание нового выхода на работу"),
+                bgcolor=colors.SURFACE_VARIANT,
             ),
-            scroll=ScrollMode.ALWAYS,
+            scroll=ScrollMode.HIDDEN,
+            padding=0,
             controls=[
-                self.name_field,
-                Divider(),
-                Column(
-                    controls=[
+                Container(
+                    self.name_field,
+                    border_radius=BorderRadius(
+                        top_left=0,
+                        top_right=0,
+                        bottom_left=12,
+                        bottom_right=12,
+                    ),
+                    bgcolor=colors.SURFACE_VARIANT,
+                    padding=Padding(
+                        left=10,
+                        top=15,
+                        right=10,
+                        bottom=15,
+                    ),
+                ),
+                Container(
+                    Column([
+                        Text(
+                            "Ставка",
+                            theme_style=TextThemeStyle.TITLE_MEDIUM,
+                        ),
                         self.rate_dropdown,
                         self.bonus_label,
                         self.bonus_chips,
+                    ]),
+                    margin=Margin(left=0, top=2, right=0, bottom=2),
+                    padding=Padding(
+                        left=10,
+                        top=15,
+                        right=10,
+                        bottom=15,
+                    ),
+                    border_radius=12,
+                    bgcolor=colors.SURFACE_VARIANT,
+                ),
+                Container(
+                    Column([
+                        start_container,
                         Divider(),
-                        Text("Начало рабочего дня"),
-                        ResponsiveRow(
-                            controls=[
-                                self.start_dt_label,
-                                self.start_tm_label,
-                            ]
-                        ),
-                        Text("Конец рабочего дня"),
-                        ResponsiveRow(
-                            controls=[
-                                self.end_dt_label,
-                                self.end_tm_label,
-                            ],
-                        ),
-                        ResponsiveRow(
-                            controls=[
-                                self.end_dt_tm_by_rate_button,
-                            ]
-                        ),
-                        Divider(),
-                    ],
+                        end_container,
+                    ]),
+                    margin=Margin(left=0, top=0, right=0, bottom=2),
+                    padding=Padding(
+                        left=10,
+                        top=15,
+                        right=0,
+                        bottom=5,
+                    ),
+                    border_radius=12,
+                    bgcolor=colors.SURFACE_VARIANT,
                 ),
                 self.rework_column,
-                ElevatedButton(
-                    "Сохранить",
-                    on_click=self.save_work,
+                Container(
+                    ResponsiveRow(
+                        controls=[
+                            ElevatedButton(
+                                "Сохранить",
+                                on_click=self.save_work,
+                                height=50,
+                            ),
+                        ],
+                    ),
+                    margin=Margin(left=0, top=0, right=0, bottom=10),
                 ),
             ]
         )
@@ -244,7 +339,7 @@ class CreateWorkDayView(View):
 
     def select_start_tm(self, event: ControlEvent) -> None:
         """After seleted date change gui."""
-        self.start_tm = event.control.value
+        self.start_tm = self.start_tm_picker.value
         self.start_tm_label.text = self.start_tm.strftime(r"%H:%M")
         self.update()
 
@@ -314,7 +409,7 @@ class CreateWorkDayView(View):
             error_flag = False
             self.rate_dropdown.error_text = "Нужно выбрать ставку"
 
-        if self.start_dt > self.end_dt:
+        if self.start_dttm > self.end_dttm:
             error_flag = False
             self.page.snack_bar = SnackBar(
                 Text("Дата начала не может быть меньше даты конца")
@@ -322,25 +417,49 @@ class CreateWorkDayView(View):
             self.page.snack_bar.open = True
             self.page.update()
 
-        work_hours = (self.end_dt - self.start_dt).seconds // 60 // 60
+        difference = self.end_dttm - self.start_dttm
+        work_hours = difference.total_seconds() // 60 // 60
 
         if self.rework_flag is False and work_hours > self.rate.hours:
             error_flag = False
-            self.rework_lable.value = "Обнаружена переработка {}".format(
-                work_hours - self.rate.hours,
+            self.rework_lable.value = "Обнаружена переработка {} {}".format(
+                int(work_hours - self.rate.hours),
+                "часов",
             )
             self.rework_column.visible = True
-            self.rework_checkbox.autofocus = True
             self.rework_flag = True
             return error_flag
 
-        if (
-            self.rework_flag and
-            self.rework_percent.value and
-            self.rework_percent.value.isdigit() is False
-        ):
-            self.rework_percent.error_text = "Процент должен быть целым числом"
-            error_flag = False
+        if self.rework_flag:
+            self.rework_fix_sum.error_text = ""
+            self.rework_percent.error_text = ""
+
+            if (
+                self.rework_checkbox.value is False and
+                not self.rework_fix_sum.value and
+                not self.rework_percent.value
+            ):
+                msg = "Нужно выбрать один из вариантов"
+                self.rework_fix_sum.error_text = msg
+                self.rework_percent.error_text = msg
+                error_flag = False
+                return error_flag
+
+            if (
+                self.rework_percent.value and
+                self.rework_percent.value.isdigit() is False
+            ):
+                msg = "Процент должен быть целым числом"
+                self.rework_percent.error_text = msg
+                error_flag = False
+                return error_flag
+
+            if (
+                self.rework_fix_sum.value and
+                self.rework_fix_sum.value.isalpha() is True
+            ):
+                self.rework_fix_sum.error_text = "Сумма должена быть числом"
+                error_flag = False
 
         return error_flag
 
@@ -360,6 +479,8 @@ class CreateWorkDayView(View):
         """Validate controls value and save work day."""
         if self.is_valid is False:
             self.update()
+            del self.start_dttm
+            del self.end_dttm
             return
 
         rework = self.create_rework()
@@ -367,12 +488,33 @@ class CreateWorkDayView(View):
         self.core.save_work(
             self.rate,  # type: ignore
             self.selected_bonuses,
-            self.start_dt,
-            self.start_tm,
-            self.end_dt,
-            self.end_tm,
+            self.start_dttm,
+            self.end_dttm,
             name=self.name_field.value,
             rework=rework,
         )
         self.page.views.pop()
+        self.page.views[-1].content.change_dropdowns(self)
         self.page.update()
+
+    @cached_property
+    def start_dttm(self) -> datetime:
+        """Completely result start datetime."""
+        return datetime(
+            year=self.start_dt.year,
+            month=self.start_dt.month,
+            day=self.start_dt.day,
+            hour=self.start_tm.hour,
+            minute=self.start_tm.minute,
+        )
+
+    @cached_property
+    def end_dttm(self) -> datetime:
+        """Completely result start datetime."""
+        return datetime(
+            year=self.end_dt.year,
+            month=self.end_dt.month,
+            day=self.end_dt.day,
+            hour=self.end_tm.hour,
+            minute=self.end_tm.minute,
+        )

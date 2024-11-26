@@ -1,7 +1,6 @@
 """Module contain pages logic."""
 from abc import ABC
 from datetime import datetime
-from datetime import time
 from typing import TYPE_CHECKING
 from typing import Iterable
 
@@ -113,28 +112,16 @@ class WorkMaker(BaseCore):
         self,
         rate: RateRow,
         bonuses: Iterable[BonusRow],
-        start_dt: datetime,
-        start_tm: time,
-        end_dt: datetime,
-        end_tm: time,
+        start_datetime: datetime,
+        end_datetime: datetime,
+        # start_dt: datetime,
+        # start_tm: time,
+        # end_dt: datetime,
+        # end_tm: time,
         name: str | None = "",
         rework: dict[str, int | float] | None = None,
     ) -> None:
-        start_datetime = datetime(
-            year=start_dt.year,
-            month=start_dt.month,
-            day=start_dt.day,
-            hour=start_tm.hour,
-            minute=start_tm.minute,
-        )
-        end_datetime = datetime(
-            year=end_dt.year,
-            month=end_dt.month,
-            day=end_dt.day,
-            hour=end_tm.hour,
-            minute=end_tm.minute,
-        )
-
+        """Save new work in db."""
         # Rate
         money_value = 0
         match rate.type:
@@ -148,7 +135,8 @@ class WorkMaker(BaseCore):
         if rework:
             match next(rework.__iter__()):
                 case "%":
-                    hours = (end_datetime - start_datetime).seconds // 60 // 60
+                    difference = end_datetime - start_datetime
+                    hours = difference.total_seconds() // 60 // 60
                     rework_hours = hours - rate.hours
                     money_percent = (rate.value / 100) * rework["%"]
                     money_value += rework_hours * money_percent
@@ -199,33 +187,57 @@ class Main(BaseCore):
             "12": "Декабрь",
         }
 
-    def filters_data(self) -> tuple[map, dict[str, str]]:
-        """Get filters data month and years."""
+    def _get_work_years(self) -> set[str]:
+        """Get works year from start and end datetime."""
         stmt = "SELECT {} FROM Work".format(
             "DISTINCT substr(start_datetime, 1, 4)",
         )
-        result: list = self.db.execute(
+        start_dttms = self.db.execute(
             stmt,
             result=ResultFetch.fetchall
         )
-
-        years = {
-            i[0]
-            for i in result
-        }
-
         stmt = "SELECT {} FROM Work".format(
-            "DISTINCT substr(start_datetime, 6, 2)",
+            "DISTINCT substr(end_datetime, 1, 4)",
         )
-        result: list = self.db.execute(
+        end_dttms = self.db.execute(
             stmt,
             result=ResultFetch.fetchall
         )
 
-        months = {
+        return {
             i[0]
-            for i in result
+            for i in {*start_dttms, *end_dttms}  # type: ignore
         }
+
+    def _get_work_month_by_year(self, year: str) -> set[str]:
+        """Get works month from start and end datetime by year."""
+        stmt = "SELECT {} FROM Work WHERE {}".format(
+            "DISTINCT substr(start_datetime, 6, 2)",
+            f"substr(start_datetime, 1, 4) = '{year}'"
+        )
+        starts_dttms = self.db.execute(
+            stmt,
+            result=ResultFetch.fetchall
+        )
+
+        stmt = "SELECT {} FROM Work WHERE {}".format(
+            "DISTINCT substr(end_datetime, 6, 2)",
+            f"substr(end_datetime, 1, 4) = '{year}'"
+        )
+        end_dttms = self.db.execute(
+            stmt,
+            result=ResultFetch.fetchall
+        )
+
+        return {
+            i[0]
+            for i in {*starts_dttms, *end_dttms}  # type: ignore
+        }
+
+    def filters_data(self, year: str) -> tuple[map, dict[str, str]]:
+        """Get filters data month and years."""
+        years = self._get_work_years()
+        months = self._get_work_month_by_year(year)
 
         months_dict = {
             str(month): self.months_name[month]

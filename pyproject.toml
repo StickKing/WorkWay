@@ -10,7 +10,7 @@ repository = "https://github.com/StickKing/WorkWay"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-lildb = "*"
+lildb = "^0.5.0"
 flet = "^0.24.1"
 
 [build-system]

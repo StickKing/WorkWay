@@ -123,6 +123,7 @@ class UpdateRateModal(RateModal):
     def __init__(self, money, rate_item, on_dismiss=None) -> None:
         """Initialize."""
         super().__init__(money, on_dismiss)
+        self.title = Text("Изменение ставки")
         self.rate_item = rate_item
         self.name.value = rate_item.name
         self.value.value = str(rate_item.value)
@@ -181,7 +182,7 @@ class BonusModal(AlertDialog):
 
         super().__init__(
             modal=True,
-            title=Text("Создание ставки"),
+            title=Text("Создание надбавки"),
             content=Column(
                 [
                     self.name,
@@ -241,6 +242,7 @@ class UpdateBonusModal(BonusModal):
     def __init__(self, money, bonus_item, on_dismiss=None) -> None:
         """Initialize."""
         super().__init__(money, on_dismiss)
+        self.title = Text("Изменение надбавки")
         self.bonus_item = bonus_item
         self.name.value = bonus_item.name
         self.value.value = str(bonus_item.value)
