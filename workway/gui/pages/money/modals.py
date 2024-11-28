@@ -5,10 +5,15 @@ from flet import AlertDialog
 from flet import Checkbox
 from flet import Column
 from flet import ControlEvent
+from flet import Dropdown
 from flet import ElevatedButton
 from flet import KeyboardType
 from flet import Text
 from flet import TextField
+from flet import dropdown
+
+from workway.core.db.tables import BonusType
+from workway.core.db.tables import RateType
 
 
 if TYPE_CHECKING:
@@ -36,8 +41,20 @@ class RateModal(AlertDialog):
             label="Длительность смены в часах",
             keyboard_type=KeyboardType.NUMBER,
         )
-        self.type = Checkbox(
-            label="Почасовая ставка",
+        # self.type = Checkbox(
+        #     label="Почасовая ставка",
+        #     on_change=self.on_change_type,
+        # )
+        self.type = Dropdown(
+            label="Тип",
+            options=[
+                dropdown.Option(
+                    key=type_.name,
+                    content=Text(type_.value)
+                )
+                for type_ in RateType
+            ],
+            value=RateType.shift.name,
             on_change=self.on_change_type,
         )
         self.by_default = Checkbox(label="По умолчанию")
@@ -48,8 +65,8 @@ class RateModal(AlertDialog):
             content=Column(
                 [
                     self.name,
-                    self.value,
                     self.type,
+                    self.value,
                     self.hours,
                     self.by_default,
                 ],
@@ -109,11 +126,12 @@ class RateModal(AlertDialog):
         self.page.close(self)  # type: ignore
 
     def on_change_type(self, event: ControlEvent) -> None:
-        if event.data == "true":
-            self.hours.visible = False
-            self.update()
-            return
-        self.hours.visible = True
+        """Diasabled field by type."""
+        match self.type.value:
+            case "hour":
+                self.hours.visible = False
+            case "shift":
+                self.hours.visible = True
         self.update()
 
 
@@ -129,7 +147,7 @@ class UpdateRateModal(RateModal):
         self.value.value = str(rate_item.value)
         self.by_default.value = bool(rate_item.by_default)
         self.hours.value = str(rate_item.hours)
-        self.type.value = True if rate_item.type == "hour" else False
+        self.type.value = rate_item.type
 
     def save_modal(self, event: ControlEvent) -> None:
         """Save this modal."""
@@ -178,14 +196,27 @@ class BonusModal(AlertDialog):
             label="Сумма",
             keyboard_type=KeyboardType.NUMBER,
         )
+        self.type = Dropdown(
+            label="Тип",
+            options=[
+                dropdown.Option(
+                    key=type_.name,
+                    content=Text(type_.value)
+                )
+                for type_ in BonusType
+            ],
+            value=BonusType.fix.name,
+            on_change=self.change_type,
+        )
         self.by_default = Checkbox(label="По умолчанию")
 
         super().__init__(
-            modal=True,
+            modal=False,
             title=Text("Создание надбавки"),
             content=Column(
                 [
                     self.name,
+                    self.type,
                     self.value,
                     self.by_default,
                 ],
@@ -230,10 +261,20 @@ class BonusModal(AlertDialog):
             {
                 "name": self.name.value,
                 "value": self.value.value,
+                "type": self.type.value,
                 "by_default": self.by_default.value,
             }
         )
         self.page.close(self)  # type: ignore
+
+    def change_type(self, event: ControlEvent):
+        """Change label in value by type."""
+        match self.type.value:
+            case "fix":
+                self.value.label = "Сумма"
+            case "percent":
+                self.value.label = "%"
+        self.update()
 
 
 class UpdateBonusModal(BonusModal):
@@ -245,6 +286,7 @@ class UpdateBonusModal(BonusModal):
         self.title = Text("Изменение надбавки")
         self.bonus_item = bonus_item
         self.name.value = bonus_item.name
+        self.type.value = bonus_item.type
         self.value.value = str(bonus_item.value)
         self.by_default.value = bool(bonus_item.by_default)
 
@@ -259,6 +301,7 @@ class UpdateBonusModal(BonusModal):
         new_bonus = {
             "name": self.name.value,
             "value": self.value.value,
+            "type": self.type.value,
             "by_default": self.by_default.value,
         }
 
@@ -271,5 +314,5 @@ class UpdateBonusModal(BonusModal):
             self.page.close(self)
             return
 
-        self.new_bonus = self.money.update_item(new_bonus, self.bonus_item)
+        self.new_bonus = self.money.update_bonus(new_bonus, self.bonus_item)
         self.page.close(self)  # type: ignore

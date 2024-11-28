@@ -66,6 +66,7 @@ class CreateWorkDayView(View):
             for bonus in self.bonuses
             if bonus.by_default
         ]
+        self.selected_bonus_index = []
 
         # Controls
 
@@ -189,19 +190,40 @@ class CreateWorkDayView(View):
         )
 
         # Chip
-        self.bonus_chips = ResponsiveRow(
+        # self.bonus_chips = Column(
+        #     [
+        #         Chip(
+        #             label=Text(f"{bonus.name} +{bonus.value}"),
+        #             leading=Row([Switch(label="С учётом переработки")]),
+        #             on_select=self.select_bonus,
+        #             selected=True,
+        #         ) if bonus.by_default else
+        #         Chip(
+        #             label=Text(f"{bonus.name} +{bonus.value}"),
+        #             leading=Switch(label="С учётом переработки"),
+        #             on_select=self.select_bonus,
+        #         )
+        #         for bonus in self.bonuses
+        #     ],
+        # )
+        self.bonus_chips = Column(
             [
-                Chip(
-                    label=Text(f"{bonus.name} +{bonus.value}"),
-                    on_select=self.select_bonus,
-                    selected=True,
-                    col={"md": 3},
-                ) if bonus.by_default else
-                Chip(
-                    label=Text(f"{bonus.name} +{bonus.value}"),
-                    on_select=self.select_bonus,
-                    col={"md": 3},
-                )
+                Row([
+                    Chip(
+                        label=Text(
+                            f"{bonus.name} +{bonus.value}"
+                            if bonus.type == "fix"
+                            else f"{bonus.name} {bonus.value}%"
+                        ),
+                        on_select=self.select_bonus,
+                        selected=True if bonus.by_default else False,
+                    ),
+                    Switch(
+                        "С учёном переработки",
+                        visible=False,
+                        disabled=True if bonus.type == "fix" else False,
+                    ),
+                ])
                 for bonus in self.bonuses
             ],
         )
@@ -389,16 +411,45 @@ class CreateWorkDayView(View):
         self.select_end_date(event)
         self.select_end_tm(event)
 
+    def select_bonus_(self, event: ControlEvent) -> None:
+        """Select bonus."""
+        control: Chip = event.control
+        parent: Row = control.parent
+        bonus_index = self.bonus_chips.controls.index(parent)
+        selected_bonus = self.bonuses[bonus_index]
+        match (control.selected, selected_bonus.type):
+            case True, "fix":
+                self.selected_bonuses.append(selected_bonus)
+            case True, "percent":
+                parent.controls[-1].visible = True
+                self.selected_bonuses.append(selected_bonus)
+            case False, "fix":
+                self.selected_bonuses.remove(selected_bonus)
+            case False, "percent":
+                parent.controls[-1].visible = False
+                parent.controls[-1].value = False
+                self.selected_bonuses.remove(selected_bonus)
+        self.update()
+
     def select_bonus(self, event: ControlEvent) -> None:
         """Select bonus."""
         control: Chip = event.control
-        bonus_index = self.bonus_chips.controls.index(control)
+        parent: Row = control.parent
+        bonus_index = self.bonus_chips.controls.index(parent)
         selected_bonus = self.bonuses[bonus_index]
-        match control.selected:
-            case True:
-                self.selected_bonuses.append(selected_bonus)
-            case False:
-                self.selected_bonuses.remove(selected_bonus)
+        match (control.selected, selected_bonus.type):
+            case True, "fix":
+                self.selected_bonus_index.append(bonus_index)
+            case True, "percent":
+                parent.controls[-1].visible = True
+                self.selected_bonus_index.append(bonus_index)
+            case False, "fix":
+                self.selected_bonus_index.append(bonus_index)
+            case False, "percent":
+                parent.controls[-1].visible = False
+                parent.controls[-1].value = False
+                self.selected_bonus_index.append(bonus_index)
+        self.update()
 
     @property
     def is_valid(self) -> bool:
@@ -475,6 +526,14 @@ class CreateWorkDayView(View):
             return {"sum": float(fix_sum)}
         return None
 
+    @property
+    def completed_bonuses(self):
+        bonuses = []
+        for bonus_index in self.selected_bonus_index:
+            bonuses["bonus"] = self.bonuses[bonus_index]
+            bonuses["on_full_sum"] = self.bonus_chips.controls[bonus_index].controls[-1].value
+        return bonuses
+
     def save_work(self, event: ControlEvent) -> None:
         """Validate controls value and save work day."""
         if self.is_valid is False:
@@ -487,7 +546,7 @@ class CreateWorkDayView(View):
 
         self.core.save_work(
             self.rate,  # type: ignore
-            self.selected_bonuses,
+            self.completed_bonuses,
             self.start_dttm,
             self.end_dttm,
             name=self.name_field.value,

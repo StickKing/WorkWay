@@ -109,7 +109,7 @@ class MainPage(Column):
                 bottom_left=0,
                 bottom_right=0,
             ),
-            bgcolor=colors.SURFACE_VARIANT,
+            # bgcolor=colors.SURFACE_VARIANT,
         )
         works.append(bottom_container)
         return works
@@ -125,7 +125,8 @@ class MainPage(Column):
 
         month_key = self.dropdown_month.value
         if month_key not in months:
-            month_key = tuple(months.keys())[-1]
+            keys = tuple(months.keys())
+            month_key = keys[-1] if keys else None
 
         self.dropdown_month.options = [
             dropdown.Option(
@@ -136,12 +137,13 @@ class MainPage(Column):
         ]
         self.dropdown_month.value = month_key
 
-    def change_dropdowns(self, event: ControlEvent):
+    def change_dropdowns(self, event: ControlEvent | CreateWorkDayView):
         """Reload works after change dropdowns."""
-        control = getattr(event, "control", None)
-        if control is not None and control.label == "Год":
-            years, months = self.core.filters_data(control.value)
+        control = getattr(event, "control", event)
+        if isinstance(control, CreateWorkDayView) or control.label == "Год":
+            years, months = self.core.filters_data(self.dropdown_year.value)
             self._load_filters(years, months)
+
         self.work_column.controls = self.get_works()
         self.update()
 

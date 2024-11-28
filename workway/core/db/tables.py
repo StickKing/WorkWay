@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
+from enum import Enum
 
 from lildb import Table
 from lildb.rows import _RowDataClsMixin
@@ -15,6 +16,13 @@ __all__ = (
     "BonusTable",
     "BonusRow",
 )
+
+
+class RateType(Enum):
+    """Rate enum type."""
+
+    shift = "Обычная"
+    hour = "Почасовая"
 
 
 @dataclass(slots=True)
@@ -31,12 +39,20 @@ class RateRow(_RowDataClsMixin):
     # Required fields for row-cls
     table: Table
     changed_columns: set = field(default_factory=lambda: set())  # type: ignore
+    types = RateType
 
 
 class RateTable(Table):
     """Rage table."""
 
     row_cls = RateRow
+
+
+class BonusType(Enum):
+    """Bonus enum type."""
+
+    fix = "Фикс. сумма"
+    percent = "Процентная"
 
 
 @dataclass(slots=True)
@@ -47,10 +63,13 @@ class BonusRow(_RowDataClsMixin):
     name: str
     value: float
     state: int
+    type: str
 
     # Required fields for row-cls
     table: Table
     changed_columns: set = field(default_factory=lambda: set())  # type: ignore
+
+    types = BonusType
 
 
 class BonusTable(Table):
@@ -69,6 +88,7 @@ class WorkRow(_RowDataClsMixin):
     hours: int
     rate_id: int
     value: float
+    json: str
 
     # Required fields for row-cls
     table: Table

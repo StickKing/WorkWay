@@ -1,6 +1,6 @@
-from flet import app
+#from flet import app
 
-from workway.main import main
+from workway.main import main  # noqa: F401
 
 
-app(main)
+#app(main)

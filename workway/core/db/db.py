@@ -2,12 +2,17 @@
 from __future__ import annotations
 
 import sqlite3
+from sqlite3 import OperationalError
 from typing import Any
+from typing import Callable
+from typing import MutableMapping
+from typing import Sequence
 
 from lildb import DB
 from lildb.column_types import Integer
 from lildb.column_types import Real
 from lildb.column_types import Text
+from lildb.enumcls import ResultFetch
 
 from .column import ForeignKey
 from .operation import CreateTable
@@ -38,7 +43,15 @@ class DataBase(DB):
         self.use_datacls = use_datacls
         self.table_names: set = set()
         self.create_table = CreateTable(self)
+        self.prepare_db()
+
+    def prepare_db(self):
+        """Prepare data base for work."""
         self.initialize_db()
+        try:
+            self.migrations()
+        except OperationalError:
+            pass
         self.initialize_tables()
 
     def initialize_db(self) -> None:
@@ -63,6 +76,7 @@ class DataBase(DB):
                 "value": Real(default=0),  # type: ignore
                 "by_default": Real(default=0),  # type: ignore
                 "state": Integer(default=1),
+                "type": Text(default="fix"),
             }
         )
         self.create_table(
@@ -75,6 +89,7 @@ class DataBase(DB):
                 "hours": Integer(),
                 "rate_id": Integer(),
                 "value": Real(),
+                "json": Text(),
             },
             foreign_keys=(
                 ForeignKey("rate_id", "Rate", "id"),
@@ -91,6 +106,67 @@ class DataBase(DB):
                 ForeignKey("bonus_id", "Bonus", "id", on_delete="cascade"),
             )
         )
+
+    def migrations(self) -> None:
+        """Migrations for data base."""
+        self.execute(
+            "ALTER TABLE Work ADD COLUMN json TEXT NOT NULL DEFAULT ''",
+        )
+        self.execute(
+            "ALTER TABLE Bonus ADD COLUMN type TEXT NOT NULL DEFAULT 'fix'",
+        )
+
+    def execute(
+        self,
+        query: str,
+        parameters: MutableMapping | Sequence = (),
+        *,
+        many: bool = False,
+        size: int | None = None,
+        result: ResultFetch | None = None,
+    ) -> list[Any] | None:
+        """Single execute to simplify it.
+
+        Args:
+            query (str): sql query
+            parameters (MutableMapping | Sequence): data for executing.
+            Defaults to ().
+            many (bool): flag for executemany operation. Defaults to False.
+            size (int | None): size for fetchmany operation. Defaults to None.
+            result (ResultFetch | None): enum for fetch func. Defaults to None.
+
+        Returns:
+            list[Any] or None
+
+        """
+        command = query.partition(" ")[0].lower()
+        cursor = self.connect.cursor()
+        if many:
+            cursor.executemany(query, parameters)
+        else:
+            cursor.execute(query, parameters)
+
+        if command in {
+            "insert",
+            "delete",
+            "update",
+            "create",
+            "drop",
+            "alter",
+        }:
+            self.connect.commit()
+
+        # Check result
+        if result is None:
+            return None
+
+        ResultFetch(result)
+
+        result_func: Callable = getattr(cursor, result.value)
+
+        if result.value == "fetchmany":
+            return result_func(size=size)
+        return result_func()
 
 # if __name__ == "__main__":
 #     core = Core("local.db")
