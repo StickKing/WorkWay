@@ -1,8 +1,11 @@
 """Module contain main page."""
+from __future__ import annotations
+
 from datetime import datetime
 from datetime import timedelta
 from functools import cached_property
 from typing import TYPE_CHECKING
+from typing import Callable
 
 from flet import AppBar
 from flet import BorderRadius
@@ -37,6 +40,55 @@ if TYPE_CHECKING:
     from workway.core.db.tables import BonusRow
     from workway.core.db.tables import RateRow
     from workway.core.subcores import WorkMaker
+    from workway.typings import TCompleteBonus
+    from workway.typings import TCompleteRework
+
+
+class BonusChip(Row):
+
+    controls: tuple[Chip, Switch]
+
+    def __init__(
+        self,
+        bonus: "BonusRow",
+        on_select: Callable,
+    ) -> None:
+        """Initialize."""
+        self.bonus = bonus
+        super().__init__((
+            Chip(
+                label=Text(
+                    f"{bonus.name} +{bonus.value}"
+                    if bonus.type == "fix"
+                    else f"{bonus.name} {bonus.value}%"
+                ),
+                on_select=on_select,
+                selected=True if bonus.by_default else False,
+            ),
+            Switch(
+                "С учёном переработки",
+                visible=False,
+                disabled=True if bonus.type == "fix" else False,
+            ),
+        ))
+
+    @property
+    def selected(self) -> bool:
+        """Check chip selected."""
+        return self.controls[0].selected
+
+    @property
+    def completed_bonus(self) -> TCompleteBonus:
+        """Return completed bonus."""
+        return {
+            "bonus": self.bonus,
+            "on_full_sum": self.controls[1].value,
+        }
+
+    @property
+    def swith(self) -> Switch:
+        """Swith visiability property."""
+        return self.controls[1]
 
 
 class CreateWorkDayView(View):
@@ -49,7 +101,6 @@ class CreateWorkDayView(View):
         self.rework_flag = False
 
         self.rates: dict[str, RateRow] = self.core.get_rates()
-        self.bonuses: list[BonusRow] = self.core.get_bonuses()
 
         # result values
         self.start_dt: datetime = today
@@ -61,12 +112,6 @@ class CreateWorkDayView(View):
         self.rate: RateRow | None = None
         if self.rates:
             self.rate = next(self.rates.values().__iter__())
-        self.selected_bonuses = [
-            bonus
-            for bonus in self.bonuses
-            if bonus.by_default
-        ]
-        self.selected_bonus_index = []
 
         # Controls
 
@@ -189,45 +234,16 @@ class CreateWorkDayView(View):
             on_change=self.select_rate,
         )
 
-        # Chip
-        # self.bonus_chips = Column(
-        #     [
-        #         Chip(
-        #             label=Text(f"{bonus.name} +{bonus.value}"),
-        #             leading=Row([Switch(label="С учётом переработки")]),
-        #             on_select=self.select_bonus,
-        #             selected=True,
-        #         ) if bonus.by_default else
-        #         Chip(
-        #             label=Text(f"{bonus.name} +{bonus.value}"),
-        #             leading=Switch(label="С учётом переработки"),
-        #             on_select=self.select_bonus,
-        #         )
-        #         for bonus in self.bonuses
-        #     ],
-        # )
-        self.bonus_chips = Column(
-            [
-                Row([
-                    Chip(
-                        label=Text(
-                            f"{bonus.name} +{bonus.value}"
-                            if bonus.type == "fix"
-                            else f"{bonus.name} {bonus.value}%"
-                        ),
-                        on_select=self.select_bonus,
-                        selected=True if bonus.by_default else False,
-                    ),
-                    Switch(
-                        "С учёном переработки",
-                        visible=False,
-                        disabled=True if bonus.type == "fix" else False,
-                    ),
-                ])
-                for bonus in self.bonuses
-            ],
-        )
-        if not self.bonuses:
+        bonus_chip_list = []
+        self.selected_bonuses_indexes = []
+        for index, bonus in enumerate(self.core.get_bonuses()):
+            bonus_chip_list.append(BonusChip(bonus, self.select_bonus))
+            if bonus.by_default:
+                self.selected_bonuses_indexes.append(index)
+
+        self.bonus_chips = Column(bonus_chip_list)
+
+        if not bonus_chip_list:
             self.bonus_chips.visible = False
             self.bonus_label.visible = False
 
@@ -411,44 +427,23 @@ class CreateWorkDayView(View):
         self.select_end_date(event)
         self.select_end_tm(event)
 
-    def select_bonus_(self, event: ControlEvent) -> None:
-        """Select bonus."""
-        control: Chip = event.control
-        parent: Row = control.parent
-        bonus_index = self.bonus_chips.controls.index(parent)
-        selected_bonus = self.bonuses[bonus_index]
-        match (control.selected, selected_bonus.type):
-            case True, "fix":
-                self.selected_bonuses.append(selected_bonus)
-            case True, "percent":
-                parent.controls[-1].visible = True
-                self.selected_bonuses.append(selected_bonus)
-            case False, "fix":
-                self.selected_bonuses.remove(selected_bonus)
-            case False, "percent":
-                parent.controls[-1].visible = False
-                parent.controls[-1].value = False
-                self.selected_bonuses.remove(selected_bonus)
-        self.update()
-
     def select_bonus(self, event: ControlEvent) -> None:
         """Select bonus."""
-        control: Chip = event.control
-        parent: Row = control.parent
-        bonus_index = self.bonus_chips.controls.index(parent)
-        selected_bonus = self.bonuses[bonus_index]
-        match (control.selected, selected_bonus.type):
+        control: BonusChip = event.control.parent
+        bonus: BonusRow = control.bonus
+        bonus_chip_index = self.bonus_chips.controls.index(control)
+        match control.selected, bonus.type:
             case True, "fix":
-                self.selected_bonus_index.append(bonus_index)
+                self.selected_bonuses_indexes.append(bonus_chip_index)
             case True, "percent":
-                parent.controls[-1].visible = True
-                self.selected_bonus_index.append(bonus_index)
+                control.swith.visible = True
+                self.selected_bonuses_indexes.append(bonus_chip_index)
             case False, "fix":
-                self.selected_bonus_index.append(bonus_index)
+                self.selected_bonuses_indexes.remove(bonus_chip_index)
             case False, "percent":
-                parent.controls[-1].visible = False
-                parent.controls[-1].value = False
-                self.selected_bonus_index.append(bonus_index)
+                control.swith.visible = False
+                control.swith.value = False
+                self.selected_bonuses_indexes.remove(bonus_chip_index)
         self.update()
 
     @property
@@ -460,7 +455,7 @@ class CreateWorkDayView(View):
             error_flag = False
             self.rate_dropdown.error_text = "Нужно выбрать ставку"
 
-        if self.start_dttm > self.end_dttm:
+        if self.completed_start_dttm > self.completed_end_dttm:
             error_flag = False
             self.page.snack_bar = SnackBar(
                 Text("Дата начала не может быть меньше даты конца")
@@ -468,7 +463,7 @@ class CreateWorkDayView(View):
             self.page.snack_bar.open = True
             self.page.update()
 
-        difference = self.end_dttm - self.start_dttm
+        difference = self.completed_end_dttm - self.completed_start_dttm
         work_hours = difference.total_seconds() // 60 // 60
 
         if self.rework_flag is False and work_hours > self.rate.hours:
@@ -514,50 +509,55 @@ class CreateWorkDayView(View):
 
         return error_flag
 
-    def create_rework(self) -> dict[str, int | float] | None:
+    @property
+    def completed_rework(self) -> TCompleteRework | None:
         """Create rework if it exists."""
         if not self.rework_flag or self.rework_checkbox.value:
             return None
         percent = self.rework_percent.value
         if percent:
-            return {"%": int(percent)}
+            return {
+                "type": "%",
+                "value": int(percent),
+            }
         fix_sum = self.rework_fix_sum.value
         if fix_sum:
-            return {"sum": float(fix_sum)}
+            return {
+                "type": "sum",
+                "value": float(fix_sum),
+            }
         return None
 
     @property
-    def completed_bonuses(self):
-        bonuses = []
-        for bonus_index in self.selected_bonus_index:
-            bonuses["bonus"] = self.bonuses[bonus_index]
-            bonuses["on_full_sum"] = self.bonus_chips.controls[bonus_index].controls[-1].value
-        return bonuses
+    def completed_bonuses(self) -> list[TCompleteBonus]:
+        bonus_chips = self.bonus_chips.controls
+        return [
+            bonus_chips[bonus_index].completed_bonus
+            for bonus_index in self.selected_bonuses_indexes
+        ]
 
     def save_work(self, event: ControlEvent) -> None:
         """Validate controls value and save work day."""
         if self.is_valid is False:
             self.update()
-            del self.start_dttm
-            del self.end_dttm
+            del self.completed_start_dttm
+            del self.completed_end_dttm
             return
-
-        rework = self.create_rework()
 
         self.core.save_work(
             self.rate,  # type: ignore
             self.completed_bonuses,
-            self.start_dttm,
-            self.end_dttm,
+            self.completed_start_dttm,
+            self.completed_end_dttm,
             name=self.name_field.value,
-            rework=rework,
+            rework=self.completed_rework,
         )
         self.page.views.pop()
         self.page.views[-1].content.change_dropdowns(self)
         self.page.update()
 
     @cached_property
-    def start_dttm(self) -> datetime:
+    def completed_start_dttm(self) -> datetime:
         """Completely result start datetime."""
         return datetime(
             year=self.start_dt.year,
@@ -568,7 +568,7 @@ class CreateWorkDayView(View):
         )
 
     @cached_property
-    def end_dttm(self) -> datetime:
+    def completed_end_dttm(self) -> datetime:
         """Completely result start datetime."""
         return datetime(
             year=self.end_dt.year,
