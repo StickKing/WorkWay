@@ -19,3 +19,10 @@ class TCompleteRework(TypedDict):
 
     value: float
     type: Literal["%", "sum"]
+
+
+class TCompleteOtherIncome(TypedDict):
+    """Completed other income dict for core."""
+
+    name: str
+    value: float

@@ -18,6 +18,21 @@ __all__ = (
 )
 
 
+class PretifyMoneyMixin:
+    """Pretify money."""
+
+    value: float
+
+    @property
+    def pretify_money(self) -> str:
+        """Prepare string money."""
+        money = str(self.value)
+        total, cent = money.split(".")
+        if cent == "0":
+            money = total
+        return f"{money} руб."
+
+
 class RateType(Enum):
     """Rate enum type."""
 
@@ -26,7 +41,7 @@ class RateType(Enum):
 
 
 @dataclass(slots=True)
-class RateRow(_RowDataClsMixin):
+class RateRow(_RowDataClsMixin, PretifyMoneyMixin):
 
     id: int
     by_default: bool
@@ -40,6 +55,16 @@ class RateRow(_RowDataClsMixin):
     table: Table
     changed_columns: set = field(default_factory=lambda: set())  # type: ignore
     types = RateType
+
+    @property
+    def default(self) -> bool:
+        """Is rate use default."""
+        return bool(self.by_default)
+
+    @property
+    def type_name(self) -> str:
+        """String type name."""
+        return getattr(self.types, self.type).value
 
 
 class RateTable(Table):
@@ -56,7 +81,7 @@ class BonusType(Enum):
 
 
 @dataclass(slots=True)
-class BonusRow(_RowDataClsMixin):
+class BonusRow(_RowDataClsMixin, PretifyMoneyMixin):
 
     id: int
     by_default: bool
@@ -68,8 +93,17 @@ class BonusRow(_RowDataClsMixin):
     # Required fields for row-cls
     table: Table
     changed_columns: set = field(default_factory=lambda: set())  # type: ignore
-
     types = BonusType
+
+    @property
+    def default(self) -> bool:
+        """Is rate use default."""
+        return bool(self.by_default)
+
+    @property
+    def type_name(self) -> str:
+        """String type name."""
+        return getattr(self.types, self.type).value
 
 
 class BonusTable(Table):
@@ -79,7 +113,7 @@ class BonusTable(Table):
 
 
 @dataclass(slots=True)
-class WorkRow(_RowDataClsMixin):
+class WorkRow(_RowDataClsMixin, PretifyMoneyMixin):
 
     id: int
     name: str
@@ -87,6 +121,7 @@ class WorkRow(_RowDataClsMixin):
     end_datetime: str
     hours: int
     rate_id: int
+    state: int
     value: float
     json: str
 

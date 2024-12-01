@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from flet import BorderRadius
+from flet import BottomSheet
 from flet import Column
 from flet import Container
 from flet import ControlEvent
@@ -15,8 +16,8 @@ from flet import TextStyle
 from flet import colors
 from flet import dropdown
 
-from .presentator import WorkPresentator
-from .presentator import WorkTile
+from .controls import WorkPresentator
+from .controls import WorkTile
 from .views import CreateWorkDayView
 
 
@@ -27,8 +28,8 @@ if TYPE_CHECKING:
 
 class MainPage(Column):
 
-    def __init__(self, main):
-        self.core: Main = main
+    def __init__(self, main: "Main"):
+        self.core = main
         today = datetime.now()
         years, months = self.core.filters_data(str(today.year))
 
@@ -93,7 +94,7 @@ class MainPage(Column):
             self.dropdown_month.value,
             self.dropdown_year.value,
         ):
-            works.append(WorkTile(work))
+            works.append(WorkTile(self.core, work))
             month_money_value += work.value
         bottom_container = Container(
             Column([
@@ -140,7 +141,11 @@ class MainPage(Column):
     def change_dropdowns(self, event: ControlEvent | CreateWorkDayView):
         """Reload works after change dropdowns."""
         control = getattr(event, "control", event)
-        if isinstance(control, CreateWorkDayView) or control.label == "Год":
+        if (
+            isinstance(control, CreateWorkDayView) or
+            isinstance(control, BottomSheet) or
+            control.label == "Год"
+        ):
             years, months = self.core.filters_data(self.dropdown_year.value)
             self._load_filters(years, months)
 

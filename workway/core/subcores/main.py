@@ -120,3 +120,8 @@ class Main(BaseCore):
         for bonus in bonuses:
             value += bonus.value
         return value
+
+    def delete_work(self, work: "WorkRow") -> None:
+        """Delete work from db."""
+        self.db.work_bonus.delete(work_id=work.id)
+        work.delete()

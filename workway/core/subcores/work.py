@@ -1,6 +1,7 @@
 """Module contain create work view subcore."""
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import TYPE_CHECKING
 from typing import Iterable
@@ -10,6 +11,7 @@ from .base import BaseCore
 
 if TYPE_CHECKING:
     from workway.typings import TCompleteBonus
+    from workway.typings import TCompleteOtherIncome
     from workway.typings import TCompleteRework
 
     from ..db.tables import BonusRow
@@ -19,6 +21,20 @@ if TYPE_CHECKING:
 
 class Сalculation:
     """Сalculation work income money."""
+
+    __slots__ = (
+        "core",
+        "rate",
+        "bonuses",
+        "start_datetime",
+        "end_datetime",
+        "rework",
+        "other_income",
+        "calculate_rate",
+        "calculate_rework",
+        "calculate_bonus",
+        "calculate_other",
+    )
 
     class RateСalculation:
         """Descriptor for calculating rate."""
@@ -145,9 +161,31 @@ class Сalculation:
                     money += rework["value"]
             return money
 
+    class OtherIncomeСalculation:
+        """Other income money."""
+
+        def __get__(
+            self,
+            obj: "Сalculation",
+            objtype: None = None,
+        ) -> float:
+            self.calc = obj
+            return self()
+
+        def __call__(self) -> float:
+            """Calculate money."""
+            other_income = self.calc.other_income
+            if not other_income:
+                return 0
+            money = 0
+            for income in other_income:
+                money += income["value"]
+            return money
+
     rate_calc = RateСalculation()
     bonus_calc = BonusСalculation()
     rework_calc = ReworkСalculation()
+    other_calc = OtherIncomeСalculation()
 
     def __init__(
         self,
@@ -157,6 +195,7 @@ class Сalculation:
         start_datetime: datetime,
         end_datetime: datetime,
         rework: TCompleteRework | None = None,
+        other_income: list[TCompleteOtherIncome] | None = None,
     ) -> None:
         self.core = core
         self.rate = rate
@@ -164,11 +203,13 @@ class Сalculation:
         self.start_datetime = start_datetime
         self.end_datetime = end_datetime
         self.rework = rework
+        self.other_income = other_income
 
         # order is important
         self.calculate_rate = self.rate_calc
         self.calculate_rework = self.rework_calc
         self.calculate_bonus = self.bonus_calc
+        self.calculate_other = self.other_calc
 
     def result(self) -> float:
         """Return completed money value."""
@@ -176,6 +217,7 @@ class Сalculation:
             self.calculate_rate,
             self.calculate_rework,
             self.calculate_bonus,
+            self.calculate_other,
         ))
 
 
@@ -200,13 +242,14 @@ class WorkMaker(BaseCore):
     def _save_work_bonuses(
         self,
         work_id: int,
-        bonuses: Iterable["BonusRow"] | map,
+        bonuses: Iterable["TCompleteBonus"],
     ) -> None:
         """Save bonuses."""
         for bonus in bonuses:
             self.db.work_bonus.add({
                 "work_id": work_id,
-                "bonus_id": bonus.id,
+                "bonus_id": bonus["bonus"].id,
+                "on_full_sum": bonus["on_full_sum"],
             })
 
     def save_work(
@@ -217,6 +260,7 @@ class WorkMaker(BaseCore):
         end_datetime: datetime,
         name: str | None = "",
         rework: TCompleteRework | None = None,
+        other_income: list[TCompleteOtherIncome] | None = None,
     ) -> None:
         """Save new work in db."""
         work_income = Сalculation(
@@ -226,8 +270,10 @@ class WorkMaker(BaseCore):
             start_datetime,
             end_datetime,
             rework,
+            other_income,
         )
 
+        json_field = {"other_income": other_income}
         work_day = {
             "name": name,
             "start_datetime": start_datetime,
@@ -235,11 +281,24 @@ class WorkMaker(BaseCore):
             "hours": 0,
             "rate_id": rate.id,
             "value": work_income.result(),
+            "json": json.dumps(json_field),
         }
         self.db.work.add(work_day)
 
         work: WorkRow = self.db.work.get(**work_day)
         self._save_work_bonuses(
             work.id,
-            map(lambda b: b["bonus"], bonuses),
+            bonuses,
         )
+
+    def get_full_sum_bonuses(self, work: int) -> list[BonusRow]:
+        """Return completed bonuses."""
+        work_bonuses = self.db.work_bonus.select(
+            work_id=work.id,
+            on_full_sum=1,
+        )
+        stmt = ", ".join(
+            str(work_bonus.bonus_id)
+            for work_bonus in work_bonuses
+        )
+        self.db.bonus.select(condition=f"id IN ({stmt})")

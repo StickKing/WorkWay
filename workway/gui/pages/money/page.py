@@ -84,16 +84,15 @@ class MoneyPage(Column):
             ),
         ]
 
-    def add_rate(self, event: ControlEvent) -> None:
+    def add_rate(self, view: RateModal) -> None:
         """Create new rate obj."""
-        modal: RateModal = event.control
 
-        if modal.new_rate is None:
+        if view.new_rate is None:
             return
 
         self.rates.controls.insert(
             -1,
-            RateTile(self.money, modal.new_rate),
+            RateTile(self.money, view.new_rate),
         )
         self.update()
 
@@ -106,9 +105,10 @@ class MoneyPage(Column):
         add_button = IconButton(
             icon=icons.ADD,
             style=ButtonStyle(bgcolor=colors.BLACK),
-            on_click=lambda e: self.page.open(  # type: ignore
-                RateModal(self.money, self.add_rate)
-            ),
+            on_click=self.open_rate_modal,
+            # on_click=lambda e: self.page.open(  # type: ignore
+            #     RateModal(self.money, self.add_rate)
+            # ),
             width=50,
             height=50,
         )
@@ -124,16 +124,14 @@ class MoneyPage(Column):
             ],
         )
 
-    def add_bonus(self, event: ControlEvent) -> None:
+    def add_bonus(self, view: BonusModal) -> None:
         """Create new bonus obj."""
-        modal: BonusModal = event.control
-
-        if modal.new_bonus is None:
+        if view.new_bonus is None:
             return
 
         self.bonuses.controls.insert(
             -1,
-            BonusTile(self.money, modal.new_bonus),
+            BonusTile(self.money, view.new_bonus),
         )
         self.update()
 
@@ -146,9 +144,7 @@ class MoneyPage(Column):
         add_button = IconButton(
             icon=icons.ADD,
             style=ButtonStyle(bgcolor=colors.BLACK),
-            on_click=lambda e: self.page.open(  # type: ignore
-                BonusModal(self.money, self.add_bonus)
-            ),
+            on_click=self.open_bonus_modal,
             width=50,
             height=50,
         )
@@ -163,3 +159,13 @@ class MoneyPage(Column):
                 ),
             ],
         )
+
+    def open_rate_modal(self, event: ControlEvent) -> None:
+        """Open created rate view."""
+        self.page.views.append(RateModal(self.money, self.add_rate))
+        self.page.update()
+
+    def open_bonus_modal(self, event: ControlEvent) -> None:
+        """Open created rate view."""
+        self.page.views.append(BonusModal(self.money, self.add_bonus))
+        self.page.update()

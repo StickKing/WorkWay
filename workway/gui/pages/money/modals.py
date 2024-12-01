@@ -1,15 +1,20 @@
 """Module contain rate and bonus page."""
+from abc import ABC
+from abc import abstractmethod
 from typing import TYPE_CHECKING
+from typing import Callable
 
-from flet import AlertDialog
+from flet import AppBar
 from flet import Checkbox
-from flet import Column
 from flet import ControlEvent
 from flet import Dropdown
 from flet import ElevatedButton
 from flet import KeyboardType
+from flet import MainAxisAlignment
+from flet import Row
 from flet import Text
 from flet import TextField
+from flet import View
 from flet import dropdown
 
 from workway.core.db.tables import BonusType
@@ -17,15 +22,44 @@ from workway.core.db.tables import RateType
 
 
 if TYPE_CHECKING:
+    from flet import Page
+
     from workway.core.subcores import Money
 
 
-class RateModal(AlertDialog):
+class ModalView(ABC):
+
+    page: "Page"
+
+    @abstractmethod
+    def __init__(self) -> None:
+        ...
+
+    @abstractmethod
+    def is_valid(self) -> None:
+        ...
+
+    @abstractmethod
+    def save_modal(self) -> None:
+        ...
+
+    def close_modal(self, event: ControlEvent) -> None:
+        """Close this modal."""
+        self.page.views.pop()
+        self.page.update()
+
+
+class RateModal(View, ModalView):
     """Rate modal for create new rate."""
 
-    def __init__(self, money, on_dismiss=None) -> None:
+    def __init__(
+        self,
+        core: "Money",
+        on_dismiss: Callable | None = None,
+    ) -> None:
         """Initialize."""
-        self.money: Money = money
+        self.on_dismiss = on_dismiss
+        self.core: Money = core
         # new created rate item
         self.new_rate: dict | None = None
 
@@ -60,27 +94,24 @@ class RateModal(AlertDialog):
         self.by_default = Checkbox(label="По умолчанию")
 
         super().__init__(
-            modal=True,
-            title=Text("Создание ставки"),
-            content=Column(
-                [
-                    self.name,
-                    self.type,
-                    self.value,
-                    self.hours,
-                    self.by_default,
-                ],
+            appbar=AppBar(
+                title=Text("Создание ставки"),
             ),
-            actions=[
-                ElevatedButton("Закрыть", on_click=self.close_modal),
-                ElevatedButton("Созранить", on_click=self.save_modal),
+            controls=[
+                self.name,
+                self.type,
+                self.value,
+                self.hours,
+                self.by_default,
+                Row([
+                    ElevatedButton("Закрыть", on_click=self.close_modal),
+                    ElevatedButton("Созранить", on_click=self.save_modal),
+                ]),
             ],
-            on_dismiss=on_dismiss,
+            vertical_alignment=MainAxisAlignment.CENTER,
+            fullscreen_dialog=True,
+            # on_dismiss=on_dismiss,
         )
-
-    def close_modal(self, event: ControlEvent) -> None:
-        """Close this modal."""
-        self.page.close(self)  # type: ignore
 
     @property
     def is_valid(self) -> bool:
@@ -91,7 +122,7 @@ class RateModal(AlertDialog):
             self.value.error_text = "Обязательное поле"
             error_flag = False
 
-        if not self.type.value and not self.hours.value:
+        if self.type.value == "shift" and not self.hours.value:
             self.hours.error_text = "Обязательное поле"
             error_flag = False
 
@@ -114,7 +145,7 @@ class RateModal(AlertDialog):
             self.update()
             return
 
-        self.new_rate = self.money.add_rate(
+        self.new_rate = self.core.add_rate(
             {
                 "name": self.name.value,
                 "value": self.value.value,
@@ -123,7 +154,8 @@ class RateModal(AlertDialog):
                 "type": self.type.value,
             }
         )
-        self.page.close(self)  # type: ignore
+        self.on_dismiss(self)
+        self.close_modal(self)
 
     def on_change_type(self, event: ControlEvent) -> None:
         """Diasabled field by type."""
@@ -138,9 +170,14 @@ class RateModal(AlertDialog):
 class UpdateRateModal(RateModal):
     """Modal for updating rate."""
 
-    def __init__(self, money, rate_item, on_dismiss=None) -> None:
+    def __init__(
+        self,
+        core: "Money",
+        rate_item,
+        on_dismiss: Callable | None = None,
+    ) -> None:
         """Initialize."""
-        super().__init__(money, on_dismiss)
+        super().__init__(core, on_dismiss)
         self.title = Text("Изменение ставки")
         self.rate_item = rate_item
         self.name.value = rate_item.name
@@ -167,24 +204,34 @@ class UpdateRateModal(RateModal):
         }
 
         # if value changed create new rate
-        if float(self.rate_item.value) != float(new_rate["value"]):
+        if (
+            float(self.rate_item.value) != float(new_rate["value"]) or
+            self.type.value != self.rate_item.type
+        ):
             self.rate_item.state = 2
             self.rate_item.change()
 
-            self.new_rate = self.money.add_rate(new_rate)
-            self.page.close(self)
+            self.new_rate = self.core.add_rate(new_rate)
+            self.on_dismiss(self)
+            self.close_modal(self)
             return
 
-        self.new_rate = self.money.update_item(new_rate, self.rate_item)
-        self.page.close(self)  # type: ignore
+        self.new_rate = self.core.update_item(new_rate, self.rate_item)
+        self.on_dismiss(self)
+        self.close_modal(self)
 
 
-class BonusModal(AlertDialog):
+class BonusModal(View, ModalView):
     """Rate modal for create new rate."""
 
-    def __init__(self, money, on_dismiss=None) -> None:
+    def __init__(
+        self,
+        core: "Money",
+        on_dismiss: Callable | None = None,
+    ) -> None:
         """Initialize."""
-        self.money: Money = money
+        self.core: Money = core
+        self.on_dismiss = on_dismiss
         # new created bonus item
         self.new_bonus: dict | None = None
 
@@ -211,26 +258,20 @@ class BonusModal(AlertDialog):
         self.by_default = Checkbox(label="По умолчанию")
 
         super().__init__(
-            modal=False,
-            title=Text("Создание надбавки"),
-            content=Column(
-                [
-                    self.name,
-                    self.type,
-                    self.value,
-                    self.by_default,
-                ],
+            appbar=AppBar(
+                title=Text("Создание надбавки"),
             ),
-            actions=[
-                ElevatedButton("Закрыть", on_click=self.close_modal),
-                ElevatedButton("Созранить", on_click=self.save_modal),
+            controls=[
+                self.name,
+                self.type,
+                self.value,
+                self.by_default,
+                Row([
+                    ElevatedButton("Закрыть", on_click=self.close_modal),
+                    ElevatedButton("Созранить", on_click=self.save_modal),
+                ]),
             ],
-            on_dismiss=on_dismiss,
         )
-
-    def close_modal(self, event: ControlEvent) -> None:
-        """Close this modal."""
-        self.page.close(self)  # type: ignore
 
     @property
     def is_valid(self) -> bool:
@@ -257,7 +298,7 @@ class BonusModal(AlertDialog):
             self.update()
             return
 
-        self.new_bonus = self.money.add_bonus(
+        self.new_bonus = self.core.add_bonus(
             {
                 "name": self.name.value,
                 "value": self.value.value,
@@ -265,7 +306,8 @@ class BonusModal(AlertDialog):
                 "by_default": self.by_default.value,
             }
         )
-        self.page.close(self)  # type: ignore
+        self.on_dismiss(self)
+        self.close_modal(self)
 
     def change_type(self, event: ControlEvent):
         """Change label in value by type."""
@@ -306,13 +348,18 @@ class UpdateBonusModal(BonusModal):
         }
 
         # if value changed create new rate
-        if float(self.bonus_item.value) != float(new_bonus["value"]):
+        if (
+            float(self.bonus_item.value) != float(new_bonus["value"]) or
+            self.type.value != self.bonus_item.type
+        ):
             self.bonus_item.state = 2
             self.bonus_item.change()
 
-            self.new_bonus = self.money.add_bonus(new_bonus)
-            self.page.close(self)
+            self.new_bonus = self.core.add_bonus(new_bonus)
+            self.on_dismiss(self)
+            self.close_modal(self)
             return
 
-        self.new_bonus = self.money.update_bonus(new_bonus, self.bonus_item)
-        self.page.close(self)  # type: ignore
+        self.new_bonus = self.core.update_bonus(new_bonus, self.bonus_item)
+        self.on_dismiss(self)
+        self.close_modal(self)

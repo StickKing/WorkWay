@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 from sqlite3 import OperationalError
+from typing import TYPE_CHECKING
 from typing import Any
 from typing import Callable
 from typing import MutableMapping
@@ -19,6 +20,10 @@ from .operation import CreateTable
 from .tables import BonusTable
 from .tables import RateTable
 from .tables import WorkTable
+
+
+if TYPE_CHECKING:
+    from lildb.table import Table
 
 
 class DataBase(DB):
@@ -90,6 +95,7 @@ class DataBase(DB):
                 "rate_id": Integer(),
                 "value": Real(),
                 "json": Text(),
+                "state": Integer(default=1),
             },
             foreign_keys=(
                 ForeignKey("rate_id", "Rate", "id"),
@@ -100,6 +106,7 @@ class DataBase(DB):
             {
                 "work_id": Integer(),
                 "bonus_id": Integer(),
+                "on_full_sum": Integer(default=0),
             },
             foreign_keys=(
                 ForeignKey("work_id", "Work", "id", on_delete="cascade"),
@@ -114,6 +121,18 @@ class DataBase(DB):
         )
         self.execute(
             "ALTER TABLE Bonus ADD COLUMN type TEXT NOT NULL DEFAULT 'fix'",
+        )
+        self.execute(
+            (
+                "ALTER TABLE Work_Bonus ADD COLUMN on_full_sum "
+                "INTEGER NOT NULL DEFAULT 0"
+            ),
+        )
+        self.execute(
+            (
+                "ALTER TABLE Work ADD COLUMN state "
+                "INTEGER NOT NULL DEFAULT 0"
+            ),
         )
 
     def execute(
@@ -167,6 +186,11 @@ class DataBase(DB):
         if result.value == "fetchmany":
             return result_func(size=size)
         return result_func()
+
+    if TYPE_CHECKING:
+        def __getattr__(self, name: str) -> "Table":
+            """Typing for runtime created table."""
+            ...
 
 # if __name__ == "__main__":
 #     core = Core("local.db")

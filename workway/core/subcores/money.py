@@ -15,7 +15,7 @@ class Money(BaseCore):
     __slots__ = ("db", "core")
 
     def prepare_insert_data(self, data: dict) -> None:
-        if data["type"] == "shift":
+        if data["type"] == "hours":
             data.pop("hours")
         data["name"] = data["name"] or data["value"]
 

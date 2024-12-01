@@ -9,6 +9,7 @@ from typing import Callable
 
 from flet import AppBar
 from flet import BorderRadius
+from flet import ButtonStyle
 from flet import Chip
 from flet import Column
 from flet import Container
@@ -17,6 +18,7 @@ from flet import DatePicker
 from flet import Divider
 from flet import Dropdown
 from flet import ElevatedButton
+from flet import IconButton
 from flet import KeyboardType
 from flet import Margin
 from flet import Padding
@@ -27,11 +29,13 @@ from flet import SnackBar
 from flet import Switch
 from flet import Text
 from flet import TextField
+from flet import TextStyle
 from flet import TextThemeStyle
 from flet import TimePicker
 from flet import View
 from flet import colors
 from flet import dropdown
+from flet import icons
 
 
 if TYPE_CHECKING:
@@ -41,6 +45,7 @@ if TYPE_CHECKING:
     from workway.core.db.tables import RateRow
     from workway.core.subcores import WorkMaker
     from workway.typings import TCompleteBonus
+    from workway.typings import TCompleteOtherIncome
     from workway.typings import TCompleteRework
 
 
@@ -66,9 +71,10 @@ class BonusChip(Row):
                 selected=True if bonus.by_default else False,
             ),
             Switch(
-                "С учёном переработки",
+                "Учесть переработку",
                 visible=False,
                 disabled=True if bonus.type == "fix" else False,
+                label_style=TextStyle(size=12),
             ),
         ))
 
@@ -89,6 +95,35 @@ class BonusChip(Row):
     def swith(self) -> Switch:
         """Swith visiability property."""
         return self.controls[1]
+
+
+class OtherIncome(Row):
+    """Row for adding other income money."""
+
+    def __init__(self) -> None:
+        """Initialize."""
+        self.name_field = TextField(
+            label="Наименование",
+            autofocus=True,
+            width=150,
+        )
+        self.money_field = TextField(
+            label="Сумма",
+            width=150,
+        )
+        super().__init__([
+            self.name_field,
+            self.money_field,
+            IconButton(
+                icon=icons.HIGHLIGHT_REMOVE,
+                on_click=self.delete_this,
+            ),
+        ])
+
+    def delete_this(self, event: ControlEvent) -> None:
+        """Delete with row from parent control."""
+        self.parent.controls.remove(self)
+        self.parent.update()
 
 
 class CreateWorkDayView(View):
@@ -112,6 +147,8 @@ class CreateWorkDayView(View):
         self.rate: RateRow | None = None
         if self.rates:
             self.rate = next(self.rates.values().__iter__())
+
+        self.other_income = []
 
         # Controls
 
@@ -293,6 +330,20 @@ class CreateWorkDayView(View):
             ])
         )
 
+        self.other_income_column = Column([
+            Text(
+                "Доп. доход",
+                theme_style=TextThemeStyle.TITLE_MEDIUM,
+            ),
+            IconButton(
+                icon=icons.ADD,
+                style=ButtonStyle(bgcolor=colors.BLACK),
+                on_click=self.add_other_income,
+                width=50,
+                height=50,
+            ),
+        ])
+
         super().__init__(
             appbar=AppBar(
                 title=Text("Создание нового выхода на работу"),
@@ -326,6 +377,10 @@ class CreateWorkDayView(View):
                         self.rate_dropdown,
                         self.bonus_label,
                         self.bonus_chips,
+                        Container(
+                            self.other_income_column,
+                            margin=Margin(left=0, top=0, right=0, bottom=10),
+                        )
                     ]),
                     margin=Margin(left=0, top=2, right=0, bottom=2),
                     padding=Padding(
@@ -364,7 +419,7 @@ class CreateWorkDayView(View):
                             ),
                         ],
                     ),
-                    margin=Margin(left=0, top=0, right=0, bottom=10),
+                    margin=Margin(left=0, top=0, right=0, bottom=2),
                 ),
             ]
         )
@@ -445,6 +500,13 @@ class CreateWorkDayView(View):
                 control.swith.value = False
                 self.selected_bonuses_indexes.remove(bonus_chip_index)
         self.update()
+
+    def add_other_income(self, event: ControlEvent) -> None:
+        self.other_income_column.controls.insert(
+            -1,
+            OtherIncome(),
+        )
+        self.other_income_column.update()
 
     @property
     def is_valid(self) -> bool:
@@ -536,26 +598,6 @@ class CreateWorkDayView(View):
             for bonus_index in self.selected_bonuses_indexes
         ]
 
-    def save_work(self, event: ControlEvent) -> None:
-        """Validate controls value and save work day."""
-        if self.is_valid is False:
-            self.update()
-            del self.completed_start_dttm
-            del self.completed_end_dttm
-            return
-
-        self.core.save_work(
-            self.rate,  # type: ignore
-            self.completed_bonuses,
-            self.completed_start_dttm,
-            self.completed_end_dttm,
-            name=self.name_field.value,
-            rework=self.completed_rework,
-        )
-        self.page.views.pop()
-        self.page.views[-1].content.change_dropdowns(self)
-        self.page.update()
-
     @cached_property
     def completed_start_dttm(self) -> datetime:
         """Completely result start datetime."""
@@ -577,3 +619,38 @@ class CreateWorkDayView(View):
             hour=self.end_tm.hour,
             minute=self.end_tm.minute,
         )
+
+    @property
+    def completed_other_income(self) -> list[TCompleteOtherIncome]:
+        """Return completed other income money."""
+        controls: list[OtherIncome] = self.other_income_column.controls[1:-1]
+
+        return [
+            {
+                "name": str(cont.name_field.value or cont.money_field.value),
+                "value": value,
+            }
+            for cont in controls
+            if (value := float(cont.money_field.value or 0)) > 0
+        ]
+
+    def save_work(self, event: ControlEvent) -> None:
+        """Validate controls value and save work day."""
+        if self.is_valid is False:
+            self.update()
+            del self.completed_start_dttm
+            del self.completed_end_dttm
+            return
+
+        self.core.save_work(
+            self.rate,  # type: ignore
+            self.completed_bonuses,
+            self.completed_start_dttm,
+            self.completed_end_dttm,
+            name=self.name_field.value,
+            rework=self.completed_rework,
+            other_income=self.completed_other_income,
+        )
+        self.page.views.pop()
+        self.page.views[-1].content.change_dropdowns(self)
+        self.page.update()
