@@ -19,6 +19,7 @@ from flet import dropdown
 
 from workway.core.db.tables import BonusType
 from workway.core.db.tables import RateType
+from workway.gui.validators import is_number
 
 
 if TYPE_CHECKING:
@@ -126,11 +127,11 @@ class RateModal(View, ModalView):
             self.hours.error_text = "Обязательное поле"
             error_flag = False
 
-        if self.value.value.replace(".", "").isdigit() is False:
+        if is_number(self.value.value) is False:
             self.value.error_text = "Должны быть только цифры"
             error_flag = False
 
-        if not self.type.value and self.hours.value.isdigit is False:
+        if not self.type.value and is_number(self.hours.value) is False:
             self.hours.error_text = "Должны быть только цифры"
             error_flag = False
 
@@ -268,7 +269,7 @@ class BonusModal(View, ModalView):
                 self.by_default,
                 Row([
                     ElevatedButton("Закрыть", on_click=self.close_modal),
-                    ElevatedButton("Созранить", on_click=self.save_modal),
+                    ElevatedButton("Сохранить", on_click=self.save_modal),
                 ]),
             ],
         )
@@ -282,7 +283,7 @@ class BonusModal(View, ModalView):
             self.value.error_text = "Обязательное поле"
             error_flag = False
 
-        if self.value.value.replace(".", "").isdigit() is False:
+        if is_number(self.value.value) is False:
             self.value.error_text = "Должны быть только цифры"
             error_flag = False
 

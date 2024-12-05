@@ -1,6 +1,7 @@
 """Module contains tables cls."""
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
@@ -8,6 +9,8 @@ from enum import Enum
 
 from lildb import Table
 from lildb.rows import _RowDataClsMixin
+
+from workway.typings import TCompleteOtherIncome
 
 
 __all__ = (
@@ -33,6 +36,18 @@ class PretifyMoneyMixin:
         return f"{money} руб."
 
 
+class TypeMixin:
+    """Type method mixin."""
+
+    types: type[Enum]
+    type: str
+
+    @property
+    def type_name(self) -> str:
+        """String type name."""
+        return getattr(self.types, self.type).value
+
+
 class RateType(Enum):
     """Rate enum type."""
 
@@ -41,7 +56,7 @@ class RateType(Enum):
 
 
 @dataclass(slots=True)
-class RateRow(_RowDataClsMixin, PretifyMoneyMixin):
+class RateRow(_RowDataClsMixin, PretifyMoneyMixin, TypeMixin):
 
     id: int
     by_default: bool
@@ -61,11 +76,6 @@ class RateRow(_RowDataClsMixin, PretifyMoneyMixin):
         """Is rate use default."""
         return bool(self.by_default)
 
-    @property
-    def type_name(self) -> str:
-        """String type name."""
-        return getattr(self.types, self.type).value
-
 
 class RateTable(Table):
     """Rage table."""
@@ -81,7 +91,7 @@ class BonusType(Enum):
 
 
 @dataclass(slots=True)
-class BonusRow(_RowDataClsMixin, PretifyMoneyMixin):
+class BonusRow(_RowDataClsMixin, TypeMixin):
 
     id: int
     by_default: bool
@@ -101,9 +111,15 @@ class BonusRow(_RowDataClsMixin, PretifyMoneyMixin):
         return bool(self.by_default)
 
     @property
-    def type_name(self) -> str:
-        """String type name."""
-        return getattr(self.types, self.type).value
+    def pretify_money(self) -> str:
+        """Prepare string money."""
+        money = str(self.value)
+        total, cent = money.split(".")
+        if cent == "0":
+            money = total
+        if self.type == "fix":
+            return f"{money} руб."
+        return f"{money} %"
 
 
 class BonusTable(Table):
@@ -121,6 +137,7 @@ class WorkRow(_RowDataClsMixin, PretifyMoneyMixin):
     end_datetime: str
     hours: int
     rate_id: int
+    rework_id: int
     state: int
     value: float
     json: str
@@ -166,8 +183,32 @@ class WorkRow(_RowDataClsMixin, PretifyMoneyMixin):
         )
         return self.table.db.bonus.select(condition=f"id IN ({stmt})")
 
+    @property
+    def other_income(self) -> list[TCompleteOtherIncome]:
+        """Return other income."""
+        json_data = json.loads(self.json)
+        return json_data["other_income"]
+
 
 class WorkTable(Table):
     """Work table."""
 
     row_cls = WorkRow
+
+
+@dataclass(slots=True)
+class WorkBonus(_RowDataClsMixin):
+
+    work_id: int
+    bonus_id: int
+    on_full_sum: bool
+
+    # Required fields for row-cls
+    table: Table
+    changed_columns: set = field(default_factory=lambda: set())  # type: ignore
+
+
+class Work_Bonus(Table):
+    """Work table."""
+
+    row_cls = WorkBonus

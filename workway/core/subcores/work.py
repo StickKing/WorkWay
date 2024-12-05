@@ -5,6 +5,9 @@ import json
 from datetime import datetime
 from typing import TYPE_CHECKING
 from typing import Iterable
+from typing import TypedDict
+
+from typing_extensions import Self
 
 from .base import BaseCore
 
@@ -19,6 +22,14 @@ if TYPE_CHECKING:
     from ..db.tables import WorkRow
 
 
+class DataTableDict(TypedDict):
+    """Bonus for data table."""
+
+    name: str
+    type: str
+    money: int
+
+
 class Сalculation:
     """Сalculation work income money."""
 
@@ -30,22 +41,74 @@ class Сalculation:
         "end_datetime",
         "rework",
         "other_income",
-        "calculate_rate",
-        "calculate_rework",
-        "calculate_bonus",
-        "calculate_other",
+        "calculated_rate",
+        "calculated_rework",
+        "calculated_bonus",
+        "calculated_other",
     )
+
+    @classmethod
+    def get_bonus_on_full_sum_ids(
+        cls: type[Сalculation],
+        work: "WorkRow",
+    ) -> list["BonusRow"]:
+        db = work.table.db
+        work_bonuses = db.work_bonus.select(
+            work_id=work.id,
+            on_full_sum=1,
+        )
+        stmt = ", ".join(
+            str(work_bonus.bonus_id)
+            for work_bonus in work_bonuses
+        )
+        return db.bonus.select(condition=f"id IN ({stmt})")
+
+    @classmethod
+    def from_work(cls, core, work: "WorkRow") -> Self:
+        """Create calculation obj from work."""
+        bonus_full_sum_ids = cls.get_bonus_on_full_sum_ids(work)
+        completed_bonuses: list[TCompleteBonus] = [
+            {
+                "bonus": bonus,
+                "on_full_sum": True,
+            } if bonus.id in bonus_full_sum_ids
+            else {
+                "bonus": bonus,
+                "on_full_sum": False,
+            }
+            for bonus in work.bonuses
+        ]
+        return cls(
+            core,
+            work.rate,
+            completed_bonuses,
+            work.start_dttm,
+            work.end_dttm,
+            None,
+        )
 
     class RateСalculation:
         """Descriptor for calculating rate."""
+
+        def fetch_data_table_view(self) -> DataTableDict:
+            """Fetch rate for data table."""
+            rate = self.calc.rate
+            type_name = "Ставка"
+            if rate.type == "hour":
+                type_name = "Ставка почасовая"
+            return {
+                "name": self.calc.rate.name,
+                "type": type_name,
+                "money": self.calc.calculated_rate,
+            }
 
         def __get__(
             self,
             obj: "Сalculation",
             objtype: None = None,
-        ) -> float:
+        ) -> Self:
             self.calc = obj
-            return self()
+            return self
 
         def __call__(self) -> float:
             money = 0
@@ -68,9 +131,9 @@ class Сalculation:
             self,
             obj: "Сalculation",
             objtype: None = None,
-        ) -> float:
+        ) -> Self:
             self.calc = obj
-            return self()
+            return self
 
         def _calculate_fix_sum(
             self,
@@ -87,8 +150,8 @@ class Сalculation:
             bonuses: Iterable[TCompleteBonus],
         ) -> float:
             """Calculate bonus with type 'percent'."""
-            calculate_rate = self.calc.calculate_rate
-            calculate_rework = self.calc.calculate_rework
+            calculate_rate = self.calc.calculated_rate
+            calculate_rework = self.calc.calculated_rework
 
             rate_with_rework = calculate_rate + calculate_rework
 
@@ -104,6 +167,53 @@ class Сalculation:
                     calculate_rate / 100 * bonus["bonus"].value
                 )
             return sum(bonuses_list)
+
+        def fetch_data_table_view(self) -> list[DataTableDict]:
+            """Return bonus for view in data table."""
+            calculate_rate = self.calc.calculated_rate
+            calculate_rework = self.calc.calculated_rework
+
+            rate_with_rework = calculate_rate + calculate_rework
+            bonuses = self.calc.bonuses
+            if not bonuses:
+                return []
+
+            percent_bonuses = filter(
+                lambda b: b["bonus"].type == "percent",
+                bonuses,
+            )
+
+            data_table_bonuses = []
+            for bonus in percent_bonuses:
+                if bonus["on_full_sum"]:
+                    money = round(
+                        rate_with_rework / 100 * bonus["bonus"].value,
+                        2,
+                    )
+                    data_table_bonuses.append({
+                        "name": bonus["bonus"].name,
+                        "type": "Надбавка % с учётом переработок",
+                        "money": money,
+                    })
+                    continue
+                money = round(calculate_rate / 100 * bonus["bonus"].value, 2)
+                data_table_bonuses.append({
+                    "name": bonus["bonus"].name,
+                    "type": "Надбавка %",
+                    "money": money,
+                })
+
+            fix_bonuses = filter(
+                lambda b: b["bonus"].type == "fix",
+                bonuses,
+            )
+            for bonus in fix_bonuses:
+                data_table_bonuses.append({
+                    "name": bonus["bonus"].name,
+                    "type": "Надбавка фикс. сумма",
+                    "money": bonus["bonus"].value,
+                })
+            return data_table_bonuses
 
         def __call__(self) -> float:
             """Calculate bonus money."""
@@ -137,9 +247,9 @@ class Сalculation:
             self,
             obj: "Сalculation",
             objtype: None = None,
-        ) -> float:
+        ) -> Self:
             self.calc = obj
-            return self()
+            return self
 
         def __call__(self) -> float:
             start_datetime = self.calc.start_datetime
@@ -151,13 +261,13 @@ class Сalculation:
                 return 0
 
             match rework["type"]:
-                case "%":
+                case "percent":
                     difference = end_datetime - start_datetime
                     hours = difference.total_seconds() // 60 // 60
                     rework_hours = hours - rate.hours
                     money_percent = (rate.value / 100) * rework["value"]
                     money += rework_hours * money_percent
-                case "sum":
+                case "fix":
                     money += rework["value"]
             return money
 
@@ -168,9 +278,9 @@ class Сalculation:
             self,
             obj: "Сalculation",
             objtype: None = None,
-        ) -> float:
+        ) -> Self:
             self.calc = obj
-            return self()
+            return self
 
         def __call__(self) -> float:
             """Calculate money."""
@@ -206,18 +316,18 @@ class Сalculation:
         self.other_income = other_income
 
         # order is important
-        self.calculate_rate = self.rate_calc
-        self.calculate_rework = self.rework_calc
-        self.calculate_bonus = self.bonus_calc
-        self.calculate_other = self.other_calc
+        self.calculated_rate = self.rate_calc()
+        self.calculated_rework = self.rework_calc()
+        self.calculated_bonus = self.bonus_calc()
+        self.calculated_other = self.other_calc()
 
     def result(self) -> float:
         """Return completed money value."""
         return sum((
-            self.calculate_rate,
-            self.calculate_rework,
-            self.calculate_bonus,
-            self.calculate_other,
+            self.calculated_rate,
+            self.calculated_rework,
+            self.calculated_bonus,
+            self.calculated_other,
         ))
 
 

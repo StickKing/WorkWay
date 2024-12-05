@@ -10,9 +10,12 @@ from flet import DataRow
 from flet import DataTable
 from flet import ElevatedButton
 from flet import ListTile
+from flet import ScrollMode
 from flet import Text
 from flet import TextStyle
 from flet import colors
+
+from workway.core.subcores.work import Сalculation
 
 
 if TYPE_CHECKING:
@@ -65,32 +68,50 @@ class WorkInfoSheet(BottomSheet):
             DataColumn(Text("Сумма в руб."), numeric=True),
         ]
         super().__init__(
-            content=DataTable(
-                columns=columns,
-                rows=self._prepare_rows(),
+            content=Column(
+                [
+                    DataTable(
+                        columns=columns,
+                        rows=self._prepare_rows(),
+                    ),
+                ],
+                scroll=ScrollMode.ALWAYS,
             ),
         )
 
     def _prepare_rows(self) -> list[DataRow]:
         """Prepare rows with data."""
+        calculation = Сalculation.from_work(self.core, self.work)
+
+        data_table_rate = calculation.rate_calc.fetch_data_table_view()
         rate = DataRow(
             cells=[
-                DataCell(Text(self.work.rate.name)),
-                DataCell(Text("ставка")),
-                DataCell(Text(str(self.work.rate.value))),
+                DataCell(Text(data_table_rate["name"])),
+                DataCell(Text(data_table_rate["type"])),
+                DataCell(Text(data_table_rate["money"])),
             ]
         )
 
-        sum_bonus = [
+        data_table_bonuses = [
             DataRow(
                 cells=[
-                    DataCell(Text(bonus.name)),
-                    DataCell(Text("бонус")),
-                    DataCell(Text(str(bonus.value))),
+                    DataCell(Text(bonus["name"])),
+                    DataCell(Text(bonus["type"])),
+                    DataCell(Text(bonus["money"])),
                 ]
             )
-            for bonus in self.work.bonuses
-            if bonus.type == "fix"
+            for bonus in calculation.bonus_calc.fetch_data_table_view()
+        ]
+
+        other_income = [
+            DataRow(
+                cells=[
+                    DataCell(Text(income["name"])),
+                    DataCell(Text("Доп. доход")),
+                    DataCell(Text("{} руб.".format(income["value"]))),
+                ]
+            )
+            for income in self.work.other_income
         ]
 
         work_money = DataRow(
@@ -114,7 +135,7 @@ class WorkInfoSheet(BottomSheet):
                 ),
             ]
         )
-        return [rate, *sum_bonus, work_money, buttons]
+        return [rate, *data_table_bonuses, *other_income, work_money, buttons]
 
     def delete_this(self, event: ControlEvent) -> None:
         """Delete this control."""

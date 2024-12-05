@@ -37,6 +37,8 @@ from flet import colors
 from flet import dropdown
 from flet import icons
 
+from workway.gui.validators import is_number
+
 
 if TYPE_CHECKING:
     from datetime import time
@@ -72,7 +74,7 @@ class BonusChip(Row):
             ),
             Switch(
                 "Учесть переработку",
-                visible=False,
+                visible=True if bonus.type == "percent" else False,
                 disabled=True if bonus.type == "fix" else False,
                 label_style=TextStyle(size=12),
             ),
@@ -110,6 +112,7 @@ class OtherIncome(Row):
         self.money_field = TextField(
             label="Сумма",
             width=150,
+            keyboard_type=KeyboardType.NUMBER,
         )
         super().__init__([
             self.name_field,
@@ -146,7 +149,7 @@ class CreateWorkDayView(View):
 
         self.rate: RateRow | None = None
         if self.rates:
-            self.rate = next(self.rates.values().__iter__())
+            self.rate = next(iter(self.rates.values()))
 
         self.other_income = []
 
@@ -525,6 +528,18 @@ class CreateWorkDayView(View):
             self.page.snack_bar.open = True
             self.page.update()
 
+        for other in self.other_income_column.controls:
+            if not isinstance(other, OtherIncome):
+                continue
+            other.money_field.error_text = ""
+            money = other.money_field.value
+            if not money:
+                other.money_field.error_text = "Пустое значение"
+                error_flag = False
+            if not is_number(money):
+                other.money_field.error_text = "Это не цифра"
+                error_flag = False
+
         difference = self.completed_end_dttm - self.completed_start_dttm
         work_hours = difference.total_seconds() // 60 // 60
 
@@ -579,13 +594,13 @@ class CreateWorkDayView(View):
         percent = self.rework_percent.value
         if percent:
             return {
-                "type": "%",
+                "type": "percent",
                 "value": int(percent),
             }
         fix_sum = self.rework_fix_sum.value
         if fix_sum:
             return {
-                "type": "sum",
+                "type": "fix",
                 "value": float(fix_sum),
             }
         return None

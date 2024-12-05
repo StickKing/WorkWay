@@ -1,11 +1,10 @@
 [tool.poetry]
 name = "WorkWay"
-version = "0.1.0"
+version = "0.1.2"
 description = "WorkWay."
 authors = ["Anton Panteleev <mainsample@yandex.ru>"]
 readme = "README.md"
 license = "MIT"
-packages = [{include = "workway"}]
 repository = "https://github.com/StickKing/WorkWay"
 
 [tool.poetry.dependencies]

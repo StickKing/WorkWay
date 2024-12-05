@@ -19,6 +19,7 @@ from .column import ForeignKey
 from .operation import CreateTable
 from .tables import BonusTable
 from .tables import RateTable
+from .tables import Work_Bonus
 from .tables import WorkTable
 
 
@@ -32,6 +33,7 @@ class DataBase(DB):
     rate = RateTable("rate")
     bonus = BonusTable("bonus")
     work = WorkTable("work")
+    work_bonus = Work_Bonus("work_bonus")
 
     def __init__(
         self,
@@ -53,10 +55,7 @@ class DataBase(DB):
     def prepare_db(self):
         """Prepare data base for work."""
         self.initialize_db()
-        try:
-            self.migrations()
-        except OperationalError:
-            pass
+        self.migrations()
         self.initialize_tables()
 
     def initialize_db(self) -> None:
@@ -85,6 +84,14 @@ class DataBase(DB):
             }
         )
         self.create_table(
+            "Rework",
+            {
+                "id": Integer(primary_key=True),
+                "value": Real(default=0),  # type: ignore
+                "type": Text(default="fix"),
+            }
+        )
+        self.create_table(
             "Work",
             {
                 "id": Integer(primary_key=True),
@@ -93,12 +100,14 @@ class DataBase(DB):
                 "end_datetime": Text(),
                 "hours": Integer(),
                 "rate_id": Integer(),
+                "rework_id": Integer(nullable=True),
                 "value": Real(),
                 "json": Text(),
                 "state": Integer(default=1),
             },
             foreign_keys=(
                 ForeignKey("rate_id", "Rate", "id"),
+                ForeignKey("rework_id", "Rework", "id"),
             )
         )
         self.create_table(
@@ -116,24 +125,25 @@ class DataBase(DB):
 
     def migrations(self) -> None:
         """Migrations for data base."""
-        self.execute(
+        migrations = (
             "ALTER TABLE Work ADD COLUMN json TEXT NOT NULL DEFAULT ''",
-        )
-        self.execute(
             "ALTER TABLE Bonus ADD COLUMN type TEXT NOT NULL DEFAULT 'fix'",
-        )
-        self.execute(
             (
                 "ALTER TABLE Work_Bonus ADD COLUMN on_full_sum "
                 "INTEGER NOT NULL DEFAULT 0"
             ),
-        )
-        self.execute(
             (
                 "ALTER TABLE Work ADD COLUMN state "
                 "INTEGER NOT NULL DEFAULT 0"
             ),
+            "ALTER TABLE Work ADD COLUMN rework_id INTEGER NULL;"
         )
+
+        for query in migrations:
+            try:
+                self.execute(query)
+            except OperationalError:
+                pass
 
     def execute(
         self,

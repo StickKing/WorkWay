@@ -8,6 +8,8 @@ from .work import WorkMaker
 
 
 if TYPE_CHECKING:
+    from workway.core.db import DataBase
+
     from ..db.tables import WorkRow
 
 
@@ -16,7 +18,7 @@ class Main(BaseCore):
 
     __slots__ = ("db", "core", "work_maker", "months_name")
 
-    def __init__(self, core, db) -> None:
+    def __init__(self, core, db: "DataBase") -> None:
         super().__init__(core, db)
         self.work_maker = WorkMaker(core, db)
         self.months_name = {
