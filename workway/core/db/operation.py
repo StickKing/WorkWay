@@ -1,12 +1,19 @@
 
+from typing import TYPE_CHECKING
 from typing import Any
 from typing import MutableMapping
 from typing import Sequence
 
 from lildb.column_types import BaseType
 from lildb.operations import CreateTable
+from lildb.operations import Update
 
 from .column import ForeignKey
+
+
+if TYPE_CHECKING:
+    from lildb.operations import TOperator
+    from lildb.operations import TQueryData
 
 
 class CreateTable(CreateTable):
@@ -83,3 +90,68 @@ class CreateTable(CreateTable):
 
         self.db.execute(query)
         self.db.initialize_tables()
+
+
+class UpdateFixed(Update):
+
+    def _make_operator_query(
+        self,
+        data: "TQueryData",
+        operator: "TOperator" = "AND",
+        *,
+        without_parameters: bool = False,
+        null_is: bool = True,
+    ) -> str:
+        if operator.lower() not in {"and", "or", ","}:
+            msg = "Incorrect operator."
+            raise ValueError(msg)
+
+        if not without_parameters:
+            return f" {operator} ".join(
+                f"{key} is NULL"
+                if value is None and null_is
+                else f"{key} = :{key}"
+                for key, value in data.items()
+            )
+
+        return f" {operator} ".join(
+            f"{key} is NULL"
+            if value is None and null_is else
+            f"{key} = '{value}'"
+            if isinstance(value, str)
+            else f"{key} = {value}"
+            for key, value in data.items()
+        )
+
+    def __call__(
+        self,
+        data: "TQueryData",
+        operator: "TOperator" = "AND",
+        condition: str | None = None,
+        **filter_by: Any,
+    ) -> None:
+        """Insert-query for current table."""
+        if not isinstance(data, dict):
+            msg = "Incorrect type for 'data.'"
+            raise TypeError(msg)
+        if not data:
+            msg = "Argument 'data' do not be empty."
+            raise ValueError(msg)
+        query_coma = self._make_operator_query(
+            data,
+            operator=",",
+            null_is=False,
+        )
+        query_operator = self._make_operator_query(
+            filter_by,
+            operator,
+            without_parameters=True,
+        )
+        query = self.query + query_coma
+        if filter_by:
+            query = f"{query} WHERE {query_operator}"
+            self.table.execute(query, data)  # type: ignore
+            return
+        if condition:
+            query = f"{query} WHERE {condition}"
+        self.table.execute(query, data)  # type: ignore

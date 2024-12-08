@@ -38,21 +38,25 @@ class PresentatorSheet(BottomSheet):
                 )
             else:
                 text_field = Text(
-                    attr,
+                    attr[:20],
                     style=style,
                 )
             contents.append(
                 Row([title_field, text_field])
             )
 
+        info_column = Column(
+            contents,
+            alignment=MainAxisAlignment.CENTER,
+            horizontal_alignment=CrossAxisAlignment.CENTER,
+        )
         super().__init__(
             Container(
-                content=Column(
-                    contents,
-                    alignment=MainAxisAlignment.CENTER,
-                    horizontal_alignment=CrossAxisAlignment.CENTER,
-                ),
+                content=info_column,
                 padding=Padding(left=20, top=20, right=20, bottom=20),
                 alignment=Alignment(0, 0),
+                width=450,
             ),
+            enable_drag=True,
+            use_safe_area=True,
         )

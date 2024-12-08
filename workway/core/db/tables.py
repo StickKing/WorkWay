@@ -12,6 +12,8 @@ from lildb.rows import _RowDataClsMixin
 
 from workway.typings import TCompleteOtherIncome
 
+from .operation import UpdateFixed
+
 
 __all__ = (
     "RateTable",
@@ -29,7 +31,7 @@ class PretifyMoneyMixin:
     @property
     def pretify_money(self) -> str:
         """Prepare string money."""
-        money = str(self.value)
+        money = str(round(self.value, 2))
         total, cent = money.split(".")
         if cent == "0":
             money = total
@@ -82,6 +84,8 @@ class RateTable(Table):
 
     row_cls = RateRow
 
+    update = UpdateFixed
+
 
 class BonusType(Enum):
     """Bonus enum type."""
@@ -126,6 +130,8 @@ class BonusTable(Table):
     """Bonus table."""
 
     row_cls = BonusRow
+
+    update = UpdateFixed
 
 
 @dataclass(slots=True)
@@ -172,6 +178,11 @@ class WorkRow(_RowDataClsMixin, PretifyMoneyMixin):
         return self.table.db.rate.get(id=self.rate_id)  # type: ignore
 
     @property
+    def rework(self) -> RateRow:
+        """Return relation rate."""
+        return self.table.db.rework.get(id=self.rework_id)  # type: ignore
+
+    @property
     def bonuses(self) -> list[BonusRow]:
         """Return relation bonuses."""
         work_bonuses = self.table.db.work_bonus.select(
@@ -195,6 +206,8 @@ class WorkTable(Table):
 
     row_cls = WorkRow
 
+    update = UpdateFixed
+
 
 @dataclass(slots=True)
 class WorkBonus(_RowDataClsMixin):
@@ -212,3 +225,5 @@ class Work_Bonus(Table):
     """Work table."""
 
     row_cls = WorkBonus
+
+    update = UpdateFixed

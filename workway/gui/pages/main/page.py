@@ -12,11 +12,10 @@ from flet import ListTile
 from flet import Margin
 from flet import Padding
 from flet import Text
-from flet import TextStyle
+from flet import TextThemeStyle
 from flet import colors
 from flet import dropdown
 
-from .controls import WorkPresentator
 from .controls import WorkTile
 from .views import CreateWorkDayView
 
@@ -32,8 +31,6 @@ class MainPage(Column):
         self.core = main
         today = datetime.now()
         years, months = self.core.filters_data(str(today.year))
-
-        self.presentator = WorkPresentator(main)
 
         self.dropdown_year = Dropdown(
             label="Год",
@@ -96,11 +93,14 @@ class MainPage(Column):
         ):
             works.append(WorkTile(self.core, work))
             month_money_value += work.value
+        month_money_value = round(month_money_value, 2)
         bottom_container = Container(
             Column([
                 ListTile(
-                    trailing=Text(f"Итог: {str(month_money_value)} руб."),
-                    leading_and_trailing_text_style=TextStyle(size=20),
+                    trailing=Text(
+                        f"Итог: {str(month_money_value)} руб.",
+                        theme_style=TextThemeStyle.TITLE_LARGE,
+                    ),
                 ),
                 Container(height=52),
             ]),

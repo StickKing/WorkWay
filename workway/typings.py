@@ -26,3 +26,11 @@ class TCompleteOtherIncome(TypedDict):
 
     name: str
     value: float
+
+
+class DataTableDict(TypedDict):
+    """Bonus for data table."""
+
+    name: str
+    type: str
+    money: int

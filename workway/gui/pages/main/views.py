@@ -37,6 +37,7 @@ from flet import colors
 from flet import dropdown
 from flet import icons
 
+from workway.core.db.tables import WorkRow
 from workway.gui.validators import is_number
 
 
@@ -45,7 +46,7 @@ if TYPE_CHECKING:
 
     from workway.core.db.tables import BonusRow
     from workway.core.db.tables import RateRow
-    from workway.core.subcores import WorkMaker
+    from workway.core.subcores.work import WorkMaker
     from workway.typings import TCompleteBonus
     from workway.typings import TCompleteOtherIncome
     from workway.typings import TCompleteRework
@@ -74,7 +75,9 @@ class BonusChip(Row):
             ),
             Switch(
                 "Учесть переработку",
-                visible=True if bonus.type == "percent" else False,
+                visible=True if (
+                    bonus.type == "percent" and bonus.by_default
+                ) else False,
                 disabled=True if bonus.type == "fix" else False,
                 label_style=TextStyle(size=12),
             ),
@@ -97,6 +100,45 @@ class BonusChip(Row):
     def swith(self) -> Switch:
         """Swith visiability property."""
         return self.controls[1]
+
+
+class UpdatedBonusChip(BonusChip):
+
+    controls: tuple[Chip, Switch]
+
+    def __init__(
+        self,
+        bonus: "BonusRow",
+        on_select: Callable,
+        *,
+        bonus_in_work: bool = False,
+        on_full_sum: bool = False,
+    ) -> None:
+        """Initialize."""
+        self.bonus = bonus
+        Row.__init__(
+            self,
+            (
+                Chip(
+                    label=Text(
+                        f"{bonus.name} +{bonus.value}"
+                        if bonus.type == "fix"
+                        else f"{bonus.name} {bonus.value}%"
+                    ),
+                    on_select=on_select,
+                    selected=bonus_in_work,
+                ),
+                Switch(
+                    "Учесть переработку",
+                    value=on_full_sum,
+                    visible=True if (
+                        bonus.type == "percent" and bonus_in_work
+                    ) else False,
+                    disabled=True if bonus.type == "fix" else False,
+                    label_style=TextStyle(size=12),
+                ),
+            ),
+        )
 
 
 class OtherIncome(Row):
@@ -127,6 +169,15 @@ class OtherIncome(Row):
         """Delete with row from parent control."""
         self.parent.controls.remove(self)
         self.parent.update()
+
+
+class UpdateOtherIncome(OtherIncome):
+    """Other income row for updating."""
+
+    def __init__(self, other_income: "TCompleteOtherIncome") -> None:
+        super().__init__()
+        self.name_field.value = other_income["name"]
+        self.money_field.value = str(other_income["value"])
 
 
 class CreateWorkDayView(View):
@@ -658,6 +709,358 @@ class CreateWorkDayView(View):
             return
 
         self.core.save_work(
+            self.rate,  # type: ignore
+            self.completed_bonuses,
+            self.completed_start_dttm,
+            self.completed_end_dttm,
+            name=self.name_field.value,
+            rework=self.completed_rework,
+            other_income=self.completed_other_income,
+        )
+        self.page.views.pop()
+        self.page.views[-1].content.change_dropdowns(self)
+        self.page.update()
+
+
+class UpdateWorkView(CreateWorkDayView):
+
+    def __init__(self, main: "WorkMaker", work_item: "WorkRow") -> None:
+        """Initialize."""
+        self.core = main
+        self.work_item = work_item
+
+        today = datetime.now()
+        self.rework_flag = bool(work_item.rework_id)
+
+        self.rates: dict[str, RateRow] = self.core.get_rates()
+
+        # result values
+        self.start_dt: datetime = work_item.start_dttm
+        self.start_tm: time = work_item.start_dttm.time()
+
+        self.end_dt: datetime = work_item.end_dttm
+        self.end_tm: time = work_item.end_dttm.time()
+
+        self.rate: RateRow = work_item.rate
+
+        self.other_income = []
+
+        # Controls
+
+        # rework controls
+        work_rework = work_item.rework
+        self.rework_lable = Text(
+            "Обнаружена переработка",
+            theme_style=TextThemeStyle.TITLE_MEDIUM,
+        )
+        if work_rework:
+            difference = self.completed_end_dttm - self.completed_start_dttm
+            work_hours = difference.total_seconds() // 60 // 60
+            self.rework_lable.value = "Обнаружена переработка {} {}".format(
+                int(work_hours - self.rate.hours),
+                "часов",
+            )
+        self.rework_checkbox = Switch(
+            "Не учитывать",
+            value=False,
+        )
+        self.rework_percent = TextField(
+            label="% ставки / час",
+            keyboard_type=KeyboardType.NUMBER,
+        )
+        if work_rework and work_rework.type == "percent":
+            self.rework_percent.value = str(int(work_rework.value))
+        self.rework_fix_sum = TextField(
+            label="Фиксированная сумма",
+            keyboard_type=KeyboardType.NUMBER,
+        )
+        if work_rework and work_rework.type == "fix":
+            self.rework_fix_sum.value = str(work_rework.value)
+        self.rework_column = Container(
+            content=Column([
+                self.rework_lable,
+                self.rework_checkbox,
+                self.rework_percent,
+                self.rework_fix_sum,
+            ]),
+            visible=bool(work_item.rework_id),
+            bgcolor=colors.ON_ERROR,
+            border_radius=12,
+            padding=Padding(
+                left=10,
+                top=15,
+                right=10,
+                bottom=15,
+            ),
+        )
+
+        # text field
+        self.name_field = TextField(
+            value=work_item.name,
+            label="Наименование",
+            autofocus=True,
+        )
+
+        # labels
+        self.start_dt_label = ElevatedButton(
+            self.start_dt.strftime(r"%d.%m.%y"),
+            col={"md": 2},
+            on_click=lambda e: self.page.open(
+                self.start_dt_picker,
+            ),
+        )
+
+        self.start_tm_label = ElevatedButton(
+            self.start_dt.strftime(r"%H:%M"),
+            col={"md": 2},
+            on_click=lambda e: self.page.open(
+                self.start_tm_picker,
+            ),
+        )
+
+        self.end_dt_label = ElevatedButton(
+            self.end_dt.strftime(r"%d.%m.%y"),
+            col={"md": 2},
+            on_click=lambda e: self.page.open(
+                self.end_dt_picker,
+            ),
+        )
+
+        self.end_tm_label = ElevatedButton(
+            self.end_dt.strftime(r"%H:%M"),
+            col={"md": 2},
+            on_click=lambda e: self.page.open(
+                self.end_tm_picker,
+            ),
+        )
+        self.bonus_label = Text(
+            "Надбавки",
+            theme_style=TextThemeStyle.TITLE_MEDIUM,
+        )
+
+        # pickers
+        self.start_dt_picker = DatePicker(
+            current_date=self.start_dt,
+            value=self.start_dt,
+            first_date=datetime(year=today.year - 1, month=2, day=1),
+            last_date=datetime(year=today.year + 1, month=2, day=1),
+            on_change=self.select_start_date,
+        )
+        self.start_tm_picker = TimePicker(
+            value=today.time(),
+            on_change=self.select_start_tm,
+        )
+
+        self.end_dt_picker = DatePicker(
+            current_date=self.end_dt,
+            value=self.end_dt,
+            first_date=datetime(year=today.year - 1, month=1, day=1),
+            last_date=datetime(year=today.year + 1, month=2, day=1),
+            on_change=self.select_end_date,
+        )
+        self.end_tm_picker = TimePicker(
+            value=today.time(),
+            on_change=self.select_end_tm,
+        )
+
+        # dropdown
+        self.rate_dropdown = Dropdown(
+            options=[
+                dropdown.Option(
+                    content=Text(
+                        f"{rate.name} +{rate.value} руб."
+                    ),
+                    key=key,
+                )
+                for key, rate in self.rates.items()
+            ],
+            value=str(self.rate.id),
+            on_change=self.select_rate,
+        )
+
+        bonus_chip_list = []
+        self.selected_bonuses_indexes = []
+        work_bonuses = self.core.get_work_bonuses_info(work_item)
+        for index, bonus in enumerate(self.core.get_bonuses()):
+            for row in work_bonuses:
+                if row.bonus_id == bonus.id:
+                    bonus_chip_list.append(
+                        UpdatedBonusChip(
+                            bonus,
+                            self.select_bonus,
+                            bonus_in_work=True,
+                            on_full_sum=bool(row.on_full_sum),
+                        ),
+                    )
+                    self.selected_bonuses_indexes.append(index)
+                    break
+            else:
+                bonus_chip_list.append(
+                    UpdatedBonusChip(bonus, self.select_bonus),
+                )
+
+        self.bonus_chips = Column(bonus_chip_list)
+
+        if not bonus_chip_list:
+            self.bonus_chips.visible = False
+            self.bonus_label.visible = False
+
+        # buttons
+        self.end_dt_tm_by_rate_button = ElevatedButton(
+            "По часам ставки",
+            on_click=self.select_end_tm_by_rate,
+            col={"md": 3},
+        )
+
+        # work datetime control
+
+        start_container = Container(
+            content=Column([
+                Container(
+                    Text(
+                        "Начало рабочего дня",
+                        theme_style=TextThemeStyle.TITLE_MEDIUM,
+                    ),
+                    margin=Margin(left=0, top=0, right=0, bottom=5),
+                ),
+                Row(
+                    controls=[
+                        self.start_dt_label,
+                        self.start_tm_label,
+                    ],
+                ),
+            ]),
+        )
+
+        end_container = Container(
+            content=Column([
+                Container(
+                    Text(
+                        "Конец рабочего дня",
+                        theme_style=TextThemeStyle.TITLE_MEDIUM,
+                    ),
+                    margin=Margin(left=0, top=0, right=0, bottom=5),
+                ),
+                Row(
+                    controls=[
+                        self.end_dt_label,
+                        self.end_tm_label,
+                    ],
+                ),
+                self.end_dt_tm_by_rate_button,
+            ])
+        )
+
+        other_income_fields = [
+            UpdateOtherIncome(income)
+            for income in work_item.other_income
+        ]
+        self.other_income_column = Column([
+            Text(
+                "Доп. доход",
+                theme_style=TextThemeStyle.TITLE_MEDIUM,
+            ),
+            *other_income_fields,
+            IconButton(
+                icon=icons.ADD,
+                style=ButtonStyle(bgcolor=colors.BLACK),
+                on_click=self.add_other_income,
+                width=50,
+                height=50,
+            ),
+        ])
+
+        View.__init__(
+            self,
+            appbar=AppBar(
+                title=Text("Создание нового выхода на работу"),
+                bgcolor=colors.SURFACE_VARIANT,
+            ),
+            scroll=ScrollMode.HIDDEN,
+            padding=0,
+            controls=[
+                Container(
+                    self.name_field,
+                    border_radius=BorderRadius(
+                        top_left=0,
+                        top_right=0,
+                        bottom_left=12,
+                        bottom_right=12,
+                    ),
+                    bgcolor=colors.SURFACE_VARIANT,
+                    padding=Padding(
+                        left=10,
+                        top=15,
+                        right=10,
+                        bottom=15,
+                    ),
+                ),
+                Container(
+                    Column([
+                        Text(
+                            "Ставка",
+                            theme_style=TextThemeStyle.TITLE_MEDIUM,
+                        ),
+                        self.rate_dropdown,
+                        self.bonus_label,
+                        self.bonus_chips,
+                        Container(
+                            self.other_income_column,
+                            margin=Margin(left=0, top=0, right=0, bottom=10),
+                        )
+                    ]),
+                    margin=Margin(left=0, top=2, right=0, bottom=2),
+                    padding=Padding(
+                        left=10,
+                        top=15,
+                        right=10,
+                        bottom=15,
+                    ),
+                    border_radius=12,
+                    bgcolor=colors.SURFACE_VARIANT,
+                ),
+                Container(
+                    Column([
+                        start_container,
+                        Divider(),
+                        end_container,
+                    ]),
+                    margin=Margin(left=0, top=0, right=0, bottom=2),
+                    padding=Padding(
+                        left=10,
+                        top=15,
+                        right=0,
+                        bottom=5,
+                    ),
+                    border_radius=12,
+                    bgcolor=colors.SURFACE_VARIANT,
+                ),
+                self.rework_column,
+                Container(
+                    ResponsiveRow(
+                        controls=[
+                            ElevatedButton(
+                                "Сохранить",
+                                on_click=self.update_work,
+                                height=50,
+                            ),
+                        ],
+                    ),
+                    margin=Margin(left=0, top=0, right=0, bottom=2),
+                ),
+            ]
+        )
+
+    def update_work(self, event: ControlEvent) -> None:
+        """Validate controls value and save work day."""
+        if self.is_valid is False:
+            self.update()
+            del self.completed_start_dttm
+            del self.completed_end_dttm
+            return
+
+        self.core.update_work(
+            self.work_item,
             self.rate,  # type: ignore
             self.completed_bonuses,
             self.completed_start_dttm,

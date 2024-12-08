@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 
 from flet import BottomSheet
 from flet import Column
+from flet import Container
 from flet import ControlEvent
 from flet import DataCell
 from flet import DataColumn
@@ -10,12 +11,16 @@ from flet import DataRow
 from flet import DataTable
 from flet import ElevatedButton
 from flet import ListTile
+from flet import Padding
+from flet import Row
 from flet import ScrollMode
 from flet import Text
 from flet import TextStyle
 from flet import colors
 
 from workway.core.subcores.work import Сalculation
+
+from .views import UpdateWorkView
 
 
 if TYPE_CHECKING:
@@ -67,16 +72,38 @@ class WorkInfoSheet(BottomSheet):
             DataColumn(Text("Тип")),
             DataColumn(Text("Сумма в руб."), numeric=True),
         ]
+        data_table_column = Column(
+            [
+                DataTable(
+                    columns=columns,
+                    rows=self._prepare_rows(),
+                ),
+                Row(
+                    [
+                        ElevatedButton(
+                            "Удалить",
+                            bgcolor=colors.ERROR_CONTAINER,
+                            color=colors.WHITE,
+                            on_click=self.delete_this,
+                        ),
+                        ElevatedButton(
+                            "Изменить",
+                            bgcolor="#ffc107",
+                            color="#343a40",
+                            on_click=self.update_this,
+                        ),
+                    ],
+                ),
+            ],
+            scroll=ScrollMode.HIDDEN,
+        )
         super().__init__(
-            content=Column(
-                [
-                    DataTable(
-                        columns=columns,
-                        rows=self._prepare_rows(),
-                    ),
-                ],
-                scroll=ScrollMode.ALWAYS,
+            content=Container(
+                content=data_table_column,
+                padding=Padding(left=10, top=0, right=10, bottom=0),
             ),
+            enable_drag=True,
+            use_safe_area=True,
         )
 
     def _prepare_rows(self) -> list[DataRow]:
@@ -103,12 +130,25 @@ class WorkInfoSheet(BottomSheet):
             for bonus in calculation.bonus_calc.fetch_data_table_view()
         ]
 
+        data_table_rework = calculation.rework_calc.fetch_data_table_view()
+        if data_table_rework:
+            rework_row = DataRow(
+                cells=[
+                    DataCell(Text(data_table_rework["name"])),
+                    DataCell(Text(data_table_rework["type"])),
+                    DataCell(Text(round(data_table_rework["money"], 2))),
+                ]
+            )
+            data_table_bonuses.append(rework_row)
+
         other_income = [
             DataRow(
                 cells=[
                     DataCell(Text(income["name"])),
                     DataCell(Text("Доп. доход")),
-                    DataCell(Text("{} руб.".format(income["value"]))),
+                    DataCell(
+                        Text("{} руб.".format(round(income["value"], 2))),
+                    ),
                 ]
             )
             for income in self.work.other_income
@@ -118,24 +158,15 @@ class WorkInfoSheet(BottomSheet):
             cells=[
                 DataCell(Text("")),
                 DataCell(Text("")),
-                DataCell(Text(f"Итог: {self.work.value}")),
+                DataCell(Text(f"Итог: {round(self.work.value, 2)}")),
             ]
         )
-        buttons = DataRow(
-            cells=[
-                DataCell(Text("")),
-                DataCell(Text("")),
-                DataCell(
-                    ElevatedButton(
-                        "Удалить",
-                        bgcolor=colors.ERROR_CONTAINER,
-                        color=colors.WHITE,
-                        on_click=self.delete_this,
-                    ),
-                ),
-            ]
-        )
-        return [rate, *data_table_bonuses, *other_income, work_money, buttons]
+        return [
+            rate,
+            *data_table_bonuses,
+            *other_income,
+            work_money,
+        ]
 
     def delete_this(self, event: ControlEvent) -> None:
         """Delete this control."""
@@ -143,15 +174,9 @@ class WorkInfoSheet(BottomSheet):
         self.page.views[-1].content.change_dropdowns(self)
         self.page.close(self)
 
-
-class WorkPresentator:
-    """Presantation work."""
-
-    def __init__(self, core: "Main") -> None:
-        self.core = core
-
-    def get_base(self, month: str, year: str):
-        return Column([
-            WorkTile(work)
-            for work in self.core.get_works(month, year)
-        ])
+    def update_this(self, event: ControlEvent) -> None:
+        """Open view for update work."""
+        self.page.views.append(
+            UpdateWorkView(self.core.work_maker, self.work),
+        )
+        self.page.update()

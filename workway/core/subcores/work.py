@@ -4,8 +4,8 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from typing import TYPE_CHECKING
+from typing import Any
 from typing import Iterable
-from typing import TypedDict
 
 from typing_extensions import Self
 
@@ -13,6 +13,7 @@ from .base import BaseCore
 
 
 if TYPE_CHECKING:
+    from workway.typings import DataTableDict
     from workway.typings import TCompleteBonus
     from workway.typings import TCompleteOtherIncome
     from workway.typings import TCompleteRework
@@ -20,14 +21,6 @@ if TYPE_CHECKING:
     from ..db.tables import BonusRow
     from ..db.tables import RateRow
     from ..db.tables import WorkRow
-
-
-class DataTableDict(TypedDict):
-    """Bonus for data table."""
-
-    name: str
-    type: str
-    money: int
 
 
 class Сalculation:
@@ -64,6 +57,21 @@ class Сalculation:
         return db.bonus.select(condition=f"id IN ({stmt})")
 
     @classmethod
+    def get_completed_rework(
+        cls: type[Сalculation],
+        work: "WorkRow",
+    ) -> TCompleteRework | None:
+        db = work.table.db
+        rework: Any = None
+        if work.rework_id is not None:
+            rework = db.rework.get(id=work.rework_id)
+            rework = {
+                "value": rework.value,
+                "type": rework.type,
+            }
+        return rework
+
+    @classmethod
     def from_work(cls, core, work: "WorkRow") -> Self:
         """Create calculation obj from work."""
         bonus_full_sum_ids = cls.get_bonus_on_full_sum_ids(work)
@@ -78,19 +86,20 @@ class Сalculation:
             }
             for bonus in work.bonuses
         ]
+
         return cls(
             core,
             work.rate,
             completed_bonuses,
             work.start_dttm,
             work.end_dttm,
-            None,
+            cls.get_completed_rework(work),
         )
 
     class RateСalculation:
         """Descriptor for calculating rate."""
 
-        def fetch_data_table_view(self) -> DataTableDict:
+        def fetch_data_table_view(self) -> "DataTableDict":
             """Fetch rate for data table."""
             rate = self.calc.rate
             type_name = "Ставка"
@@ -168,7 +177,7 @@ class Сalculation:
                 )
             return sum(bonuses_list)
 
-        def fetch_data_table_view(self) -> list[DataTableDict]:
+        def fetch_data_table_view(self) -> list["DataTableDict"]:
             """Return bonus for view in data table."""
             calculate_rate = self.calc.calculated_rate
             calculate_rework = self.calc.calculated_rework
@@ -192,7 +201,7 @@ class Сalculation:
                     )
                     data_table_bonuses.append({
                         "name": bonus["bonus"].name,
-                        "type": "Надбавка % с учётом переработок",
+                        "type": "Надбавка % с перераб.",
                         "money": money,
                     })
                     continue
@@ -210,7 +219,7 @@ class Сalculation:
             for bonus in fix_bonuses:
                 data_table_bonuses.append({
                     "name": bonus["bonus"].name,
-                    "type": "Надбавка фикс. сумма",
+                    "type": "Надбавка фикс.",
                     "money": bonus["bonus"].value,
                 })
             return data_table_bonuses
@@ -250,6 +259,34 @@ class Сalculation:
         ) -> Self:
             self.calc = obj
             return self
+
+        def fetch_data_table_view(self) -> DataTableDict | None:
+            """Return rework for view in data table."""
+            start_datetime = self.calc.start_datetime
+            end_datetime = self.calc.end_datetime
+            rate = self.calc.rate
+            rework = self.calc.rework
+
+            if rework is None:
+                return None
+
+            match rework["type"]:
+                case "percent":
+                    difference = end_datetime - start_datetime
+                    hours = difference.total_seconds() // 60 // 60
+                    rework_hours = hours - rate.hours
+                    money_percent = (rate.value / 100) * rework["value"]
+                    return {
+                        "name": "Переработка",
+                        "type": "{}%/час".format(rework["value"]),
+                        "money": round(rework_hours * money_percent, 2),
+                    }  # type: ignore
+                case "fix":
+                    return {
+                        "name": "Переработка",
+                        "type": "Фикс. сумма",
+                        "money": rework["value"],
+                    }  # type: ignore
 
         def __call__(self) -> float:
             start_datetime = self.calc.start_datetime
@@ -349,6 +386,12 @@ class WorkMaker(BaseCore):
         """Get all bonuses for create view."""
         return self.db.bonus.select(state=1)
 
+    def get_work_bonuses_info(self, work: "WorkRow"):
+        """Return work bonuses info for updating work."""
+        return self.db.work_bonus.select(
+            work_id=work.id
+        )
+
     def _save_work_bonuses(
         self,
         work_id: int,
@@ -383,6 +426,16 @@ class WorkMaker(BaseCore):
             other_income,
         )
 
+        rework_id = None
+        if rework:
+            self.db.rework.add(rework)
+            rework_id = self.db.rework.select(
+                columns=["id"],
+                condition="type = '{}' order by id desc limit 1".format(
+                    rework["type"]
+                ),
+            )[0].id
+
         json_field = {"other_income": other_income}
         work_day = {
             "name": name,
@@ -392,6 +445,7 @@ class WorkMaker(BaseCore):
             "rate_id": rate.id,
             "value": work_income.result(),
             "json": json.dumps(json_field),
+            "rework_id": rework_id,
         }
         self.db.work.add(work_day)
 
@@ -401,14 +455,89 @@ class WorkMaker(BaseCore):
             bonuses,
         )
 
-    def get_full_sum_bonuses(self, work: int) -> list[BonusRow]:
-        """Return completed bonuses."""
-        work_bonuses = self.db.work_bonus.select(
-            work_id=work.id,
-            on_full_sum=1,
+    def update_item_by_dict(self, item, updated_dict: dict) -> None:
+        """Update item attr."""
+        for key, value in updated_dict.items():
+            if str(getattr(item, key)) == str(value):
+                continue
+            setattr(item, key, value)
+
+    def _update_work_bonuses(
+        self,
+        work_id: int,
+        bonuses: Iterable["TCompleteBonus"],
+    ) -> None:
+        """Update work bonuses."""
+        self.db.work_bonus.delete(work_id=work_id)
+        rows = [
+            {
+                "work_id": work_id,
+                "bonus_id": bonus["bonus"].id,
+                "on_full_sum": bonus["on_full_sum"],
+            }
+            for bonus in bonuses
+        ]
+        if not rows:
+            return
+        self.db.work_bonus.add(rows)
+
+    def update_work(
+        self,
+        updating_work: "WorkRow",
+        rate: "RateRow",
+        bonuses: Iterable[TCompleteBonus],
+        start_datetime: datetime,
+        end_datetime: datetime,
+        name: str | None = "",
+        rework: TCompleteRework | None = None,
+        other_income: list[TCompleteOtherIncome] | None = None,
+    ) -> None:
+        """Save new work in db."""
+        work_income = Сalculation(
+            self,
+            rate,
+            bonuses,
+            start_datetime,
+            end_datetime,
+            rework,
+            other_income,
         )
-        stmt = ", ".join(
-            str(work_bonus.bonus_id)
-            for work_bonus in work_bonuses
+
+        rework_id = None
+        updating_rework = updating_work.rework
+        if rework:
+            if updating_rework:
+                self.update_item_by_dict(updating_rework, rework)
+                updating_rework.change()
+                rework_id = updating_rework.id
+            else:
+                self.db.rework.add(rework)
+                rework_id = self.db.rework.select(
+                    columns=["id"],
+                    condition="type = '{}' order by id desc limit 1".format(
+                        rework["type"]
+                    ),
+                )[0].id
+        elif not rework and updating_rework:
+            updating_rework.delete()
+
+        json_field = {"other_income": other_income}
+        work_day = {
+            "name": name,
+            "start_datetime": start_datetime,
+            "end_datetime": end_datetime,
+            "hours": 0,
+            "rate_id": rate.id,
+            "value": work_income.result(),
+            "json": json.dumps(json_field),
+            "rework_id": rework_id,
+        }
+
+        # self.update_item_by_dict(updating_work, work_day)
+        self.db.work.update(work_day, id=updating_work.id)
+        updating_work.change()
+
+        self._update_work_bonuses(
+            updating_work.id,
+            bonuses,
         )
-        self.db.bonus.select(condition=f"id IN ({stmt})")
