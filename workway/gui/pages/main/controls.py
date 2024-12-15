@@ -11,11 +11,14 @@ from flet import DataRow
 from flet import DataTable
 from flet import ElevatedButton
 from flet import ListTile
+from flet import MainAxisAlignment
 from flet import Padding
 from flet import Row
 from flet import ScrollMode
 from flet import Text
 from flet import TextStyle
+from flet import TextThemeStyle
+from flet import alignment
 from flet import colors
 
 from workway.core.subcores.work import Сalculation
@@ -74,33 +77,60 @@ class WorkInfoSheet(BottomSheet):
         ]
         data_table_column = Column(
             [
+                Container(
+                    content=Column(
+                        controls=[
+                            Container(
+                                Text(
+                                    work.name,
+                                    theme_style=TextThemeStyle.TITLE_LARGE,
+                                ),
+                                alignment=alignment.center,
+                            ),
+                            Container(
+                                Text(
+                                    "{} - {}".format(
+                                        work.start_dttm.strftime(r"%d %B %Y %H:%M"),
+                                        work.end_dttm.strftime(r"%d %B %Y %H:%M"),
+                                    ),
+                                    theme_style=TextThemeStyle.BODY_MEDIUM,
+                                ),
+                                alignment=alignment.center,
+                            ),
+                            Row(
+                                [
+                                    ElevatedButton(
+                                        "Удалить",
+                                        bgcolor=colors.ERROR_CONTAINER,
+                                        color=colors.WHITE,
+                                        on_click=self.delete_this,
+                                    ),
+                                    ElevatedButton(
+                                        "Изменить",
+                                        bgcolor="#ffc107",
+                                        color="#343a40",
+                                        on_click=self.update_this,
+                                    ),
+                                ],
+                                alignment=MainAxisAlignment.SPACE_AROUND,
+                            ),
+                        ],
+                    )
+                ),
                 DataTable(
                     columns=columns,
                     rows=self._prepare_rows(),
                 ),
-                Row(
-                    [
-                        ElevatedButton(
-                            "Удалить",
-                            bgcolor=colors.ERROR_CONTAINER,
-                            color=colors.WHITE,
-                            on_click=self.delete_this,
-                        ),
-                        ElevatedButton(
-                            "Изменить",
-                            bgcolor="#ffc107",
-                            color="#343a40",
-                            on_click=self.update_this,
-                        ),
-                    ],
-                ),
             ],
             scroll=ScrollMode.HIDDEN,
+            alignment=MainAxisAlignment.CENTER,
         )
         super().__init__(
             content=Container(
                 content=data_table_column,
                 padding=Padding(left=10, top=0, right=10, bottom=0),
+                width=500,
+                alignment=alignment.center,
             ),
             enable_drag=True,
             use_safe_area=True,
@@ -147,7 +177,7 @@ class WorkInfoSheet(BottomSheet):
                     DataCell(Text(income["name"])),
                     DataCell(Text("Доп. доход")),
                     DataCell(
-                        Text("{} руб.".format(round(income["value"], 2))),
+                        Text("{}".format(round(income["value"], 2))),
                     ),
                 ]
             )

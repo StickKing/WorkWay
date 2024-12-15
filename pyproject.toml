@@ -26,3 +26,6 @@ unfixable = [
     "F401",
     "PLR5501",
 ]
+
+[tool.flet.flutter.pubspec.dependency_overrides]
+file_picker = "8.1.4"

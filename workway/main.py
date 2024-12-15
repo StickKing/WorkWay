@@ -1,5 +1,6 @@
 """Module contain app."""
-# from flet import app
+import locale
+
 from flet import ControlEvent
 from flet import Page
 from flet import app
@@ -10,6 +11,7 @@ from .gui.base import MainComponent
 
 def main(page: Page) -> None:
     """Create base app."""
+    locale.setlocale(locale.LC_ALL, ("ru_RU", "UTF-8"))
     core = Core()
     page.views.clear()
     page.views.append(MainComponent(core))
