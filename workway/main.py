@@ -1,18 +1,27 @@
 """Module contain app."""
-import locale
 
 from flet import ControlEvent
 from flet import Page
+from flet import ThemeMode
 from flet import app
 
 from .core import Core
 from .gui.base import MainComponent
 
 
+def prepare_theme(page: Page, core: "Core") -> None:
+    """Prepare theme."""
+    match core.settings.current_theme:
+        case "dark":
+            page.theme_mode = ThemeMode.DARK
+        case "light":
+            page.theme_mode = ThemeMode.LIGHT
+
+
 def main(page: Page) -> None:
     """Create base app."""
-    locale.setlocale(locale.LC_ALL, ("ru_RU", "UTF-8"))
     core = Core()
+    prepare_theme(page, core)
     page.views.clear()
     page.views.append(MainComponent(core))
     page.update()
@@ -25,4 +34,4 @@ def main(page: Page) -> None:
     page.on_view_pop = view_pop
 
 
-app(main)
+app(main, assets_dir="assets")

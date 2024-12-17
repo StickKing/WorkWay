@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from datetime import datetime
 from datetime import timedelta
-from functools import cached_property
 from typing import TYPE_CHECKING
 from typing import Callable
 
@@ -604,7 +603,13 @@ class CreateWorkDayView(View):
             self.rework_flag = True
             return error_flag
 
-        if self.rework_flag:
+        if self.rework_flag and work_hours <= self.rate.hours:
+            self.rework_column.visible = False
+            self.rework_flag = False
+            self.rework_percent.value = None
+            self.rework_fix_sum.value = None
+
+        if self.rework_flag and work_hours > self.rate.hours:
             self.rework_fix_sum.error_text = ""
             self.rework_percent.error_text = ""
 
@@ -640,7 +645,7 @@ class CreateWorkDayView(View):
     @property
     def completed_rework(self) -> TCompleteRework | None:
         """Create rework if it exists."""
-        if not self.rework_flag or self.rework_checkbox.value:
+        if self.rework_flag is False or self.rework_checkbox.value:
             return None
         percent = self.rework_percent.value
         if percent:
@@ -664,7 +669,7 @@ class CreateWorkDayView(View):
             for bonus_index in self.selected_bonuses_indexes
         ]
 
-    @cached_property
+    @property
     def completed_start_dttm(self) -> datetime:
         """Completely result start datetime."""
         return datetime(
@@ -675,7 +680,11 @@ class CreateWorkDayView(View):
             minute=self.start_tm.minute,
         )
 
-    @cached_property
+    @completed_start_dttm.deleter
+    def completed_start_dttm(self) -> None:
+        return None
+
+    @property
     def completed_end_dttm(self) -> datetime:
         """Completely result start datetime."""
         return datetime(
@@ -685,6 +694,10 @@ class CreateWorkDayView(View):
             hour=self.end_tm.hour,
             minute=self.end_tm.minute,
         )
+
+    @completed_end_dttm.deleter
+    def completed_end_dttm(self) -> None:
+        return None
 
     @property
     def completed_other_income(self) -> list[TCompleteOtherIncome]:

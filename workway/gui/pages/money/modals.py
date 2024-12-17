@@ -106,7 +106,7 @@ class RateModal(View, ModalView):
                 self.by_default,
                 Row([
                     ElevatedButton("Закрыть", on_click=self.close_modal),
-                    ElevatedButton("Созранить", on_click=self.save_modal),
+                    ElevatedButton("Сохранить", on_click=self.save_modal),
                 ]),
             ],
             vertical_alignment=MainAxisAlignment.CENTER,

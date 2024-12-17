@@ -122,6 +122,13 @@ class DataBase(DB):
                 ForeignKey("bonus_id", "Bonus", "id", on_delete="cascade"),
             )
         )
+        self.create_table(
+            "Setting",
+            {
+                "key": Text(primary_key=True),
+                "value": Text(),
+            },
+        )
 
     def migrations(self) -> None:
         """Migrations for data base."""

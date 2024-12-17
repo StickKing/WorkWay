@@ -96,7 +96,7 @@ class Main(BaseCore):
 
     def get_works(self, month: str, year: str) -> list["WorkRow"]:
         """Get works by year and month."""
-        stmt = "{} == '{}' AND {} == '{}' OR {} == '{}' AND {} == '{}'"
+        stmt = "{} == '{}' AND {} == '{}' OR {} == '{}' AND {} == '{}' {}"
         return self.db.work.select(
             condition=stmt.format(
                 "substr(start_datetime, 1, 4)",
@@ -107,6 +107,7 @@ class Main(BaseCore):
                 year,
                 "substr(end_datetime, 6, 2)",
                 month,
+                "ORDER BY end_datetime asc"
             )
         )
 

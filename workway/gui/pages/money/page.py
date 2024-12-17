@@ -56,7 +56,7 @@ class MoneyPage(Column):
                     self.rates,
                 ]),
                 margin=Margin(left=0, top=0, right=0, bottom=10),
-                padding=Padding(left=15, top=10, right=0, bottom=10),
+                padding=Padding(left=15, top=10, right=15, bottom=10),
                 bgcolor=colors.SURFACE_VARIANT,
                 border_radius=BorderRadius(
                     top_left=0,
@@ -74,7 +74,7 @@ class MoneyPage(Column):
                     self.bonuses,
                 ]),
                 bgcolor=colors.SURFACE_VARIANT,
-                padding=Padding(left=15, top=10, right=0, bottom=10),
+                padding=Padding(left=15, top=10, right=15, bottom=10),
                 border_radius=BorderRadius(
                     top_left=12,
                     top_right=12,

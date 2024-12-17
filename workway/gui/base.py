@@ -10,13 +10,15 @@ from flet import SafeArea
 from flet import ScrollMode
 from flet import View
 from flet import icons
-from flet_core.control import Control
 
 from .pages import MainPage
 from .pages import MoneyPage
+from .pages import SettingPage
 
 
 if TYPE_CHECKING:
+    from flet import Control
+
     from workway.core import Core
 
 
@@ -42,6 +44,10 @@ class MainComponent(View):
                     NavigationBarDestination(
                         icon=icons.ATTACH_MONEY,
                         label="Ставки и надбавки",
+                    ),
+                    NavigationBarDestination(
+                        icon=icons.SETTINGS,
+                        label="Настройки",
                     ),
                 ],
                 on_change=self.change_page,
@@ -69,14 +75,17 @@ class MainComponent(View):
             case 1:
                 self.floating_action_button.visible = False
                 self.content = MoneyPage(self.core.money)
+            case 2:
+                self.floating_action_button.visible = False
+                self.content = SettingPage(self.core.settings)
 
     @property
-    def content(self) -> Control:
+    def content(self) -> "Control":
         """Fetch current control."""
         return self.controls[0].content
 
     @content.setter
-    def content(self, control: Control) -> None:
+    def content(self, control: "Control") -> None:
         """Set new control."""
         self.controls.clear()
         self.controls.append(SafeArea(control))

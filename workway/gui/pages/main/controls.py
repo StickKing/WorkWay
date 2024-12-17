@@ -71,7 +71,7 @@ class WorkInfoSheet(BottomSheet):
         self.core = core
         self.work = work
         columns = [
-            DataColumn(Text("Наименование")),
+            DataColumn(Text("Название")),
             DataColumn(Text("Тип")),
             DataColumn(Text("Сумма в руб."), numeric=True),
         ]
@@ -79,6 +79,7 @@ class WorkInfoSheet(BottomSheet):
             [
                 Container(
                     content=Column(
+                        alignment=MainAxisAlignment.CENTER,
                         controls=[
                             Container(
                                 Text(
@@ -129,7 +130,7 @@ class WorkInfoSheet(BottomSheet):
             content=Container(
                 content=data_table_column,
                 padding=Padding(left=10, top=0, right=10, bottom=0),
-                width=500,
+                width=450,
                 alignment=alignment.center,
             ),
             enable_drag=True,
@@ -187,8 +188,8 @@ class WorkInfoSheet(BottomSheet):
         work_money = DataRow(
             cells=[
                 DataCell(Text("")),
-                DataCell(Text("")),
-                DataCell(Text(f"Итог: {round(self.work.value, 2)}")),
+                DataCell(Text("Итог")),
+                DataCell(Text(f"{round(self.work.value, 2)}")),
             ]
         )
         return [
@@ -206,6 +207,7 @@ class WorkInfoSheet(BottomSheet):
 
     def update_this(self, event: ControlEvent) -> None:
         """Open view for update work."""
+        self.page.close(self)
         self.page.views.append(
             UpdateWorkView(self.core.work_maker, self.work),
         )
