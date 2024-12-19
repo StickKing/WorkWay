@@ -1,8 +1,13 @@
 """Module contain settings page subcore."""
 
+from typing import TYPE_CHECKING
 from typing import Literal
 
 from .base import BaseCore
+
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 Ttheme = Literal["dark", "light"]
@@ -25,6 +30,19 @@ class Settings(BaseCore):
             case "light":
                 return "light"
 
+    @property
+    def db_path(self) -> "Path":
+        """Return db path."""
+        return self.core.db_path
+
+    @property
+    def archive_path(self) -> "Path":
+        """Return db path."""
+        path: Path = self.core.db_path
+        path = path / "work_way_archives"
+        path.mkdir(exist_ok=True)
+        return path
+
     def set_theme(self, theme_name: Ttheme):
         """Set theme in db."""
         theme = self.db.setting.get(key="theme")
@@ -36,3 +54,7 @@ class Settings(BaseCore):
             theme = self.db.setting.get(key="theme")
         theme.value = theme_name
         theme.change()
+
+    def reinitialize_db(self) -> None:
+        """Reinitialize db obj."""
+        self.core.reinitialize_db()
