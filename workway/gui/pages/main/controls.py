@@ -22,6 +22,7 @@ from flet import alignment
 from flet import colors
 
 from workway.core.subcores.work import Сalculation
+from workway.gui.pages.common import AlertDialogInfo
 
 from .views import UpdateWorkView
 
@@ -104,7 +105,15 @@ class WorkInfoSheet(BottomSheet):
                                         "Удалить",
                                         bgcolor=colors.ERROR_CONTAINER,
                                         color=colors.WHITE,
-                                        on_click=self.delete_this,
+                                        on_click=lambda e: self.page.open(
+                                            AlertDialogInfo(
+                                                "Удаление выхода на работу",
+                                                f"Удалить '{work.name[:20]}'?",
+                                                "Да",
+                                                self.delete_this,
+                                                "Нет",
+                                            )
+                                        ),
                                     ),
                                     ElevatedButton(
                                         "Изменить",

@@ -9,6 +9,8 @@ from flet import PopupMenuItem
 from flet import Text
 from flet import icons
 
+from workway.gui.pages.common import AlertDialogInfo
+
 from ..common import PresentatorSheet
 from .modals import UpdateBonusModal
 from .modals import UpdateRateModal
@@ -39,7 +41,15 @@ class RateTile(ListTile):
                     ),
                     PopupMenuItem(
                         text="Удалить",
-                        on_click=self.delete,
+                        on_click=lambda e: self.page.open(
+                            AlertDialogInfo(
+                                "Удаление ставки",
+                                f"Удалить '{rate.name[:20]}'?",
+                                "Да",
+                                self.delete,
+                                "Нет",
+                            )
+                        ),
                     ),
                 ],
             ),
@@ -102,7 +112,15 @@ class BonusTile(ListTile):
                     ),
                     PopupMenuItem(
                         text="Удалить",
-                        on_click=self.delete,
+                        on_click=lambda e: self.page.open(
+                            AlertDialogInfo(
+                                "Удаление надбавки",
+                                f"Удалить '{bonus.name[:20]}'?",
+                                "Да",
+                                self.delete,
+                                "Нет",
+                            )
+                        ),
                     ),
                 ],
             ),

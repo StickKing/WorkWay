@@ -22,7 +22,7 @@ class Core:
         return cls._instance
 
     def __init__(self) -> None:
-        self.db_path = self.get_db_path(debag=True)
+        self.db_path = self.get_db_path(debag=False)
         self.db = DataBase(str(self.db_path), use_datacls=True)
 
         self.money = Money(self, self.db)

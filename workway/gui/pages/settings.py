@@ -25,6 +25,8 @@ from flet import ThemeMode
 from flet import colors
 from flet import icons
 
+from .common import AlertDialogInfo
+
 
 if TYPE_CHECKING:
     from flet import ControlEvent
@@ -62,7 +64,7 @@ class SettingPage(Container):
         """Initialize."""
         self.core = core
 
-        self.db_zip_name = "work_way_db"
+        self.db_zip_name = "work_way_db.zip"
 
         self.theme_radio_group = RadioGroup(
             content=Row([
@@ -149,6 +151,8 @@ class SettingPage(Container):
 
     def create_db_zip(self, event: "FilePickerResultEvent") -> None:
         """Create db zip archive."""
+        if event.path is None:
+            return
         save_path: Path = self.core.db.normalize_path(Path(event.path))
 
         if save_path.is_dir():
@@ -173,5 +177,9 @@ class SettingPage(Container):
             return
         db_path = self.core.db.normalize_path(self.core.db_path)
         db_path.unlink()
-        shutil.unpack_archive(event.files[0].path, str(db_path.parent))
+        try:
+            shutil.unpack_archive(event.files[0].path, str(db_path.parent))
+        except Exception:
+            self.page.open(AlertDialogInfo("Ошибка", "Что-то пошло не так"))
+
         self.core.reinitialize_db()
