@@ -22,16 +22,16 @@ class Core:
         return cls._instance
 
     def __init__(self) -> None:
-        self.db_path = self.get_db_path(debag=False)
+        self.db_path = self.get_db_path(debug=False)
         self.db = DataBase(str(self.db_path), use_datacls=True)
 
         self.money = Money(self, self.db)
         self.main = Main(self, self.db)
         self.settings = Settings(self, self.db)
 
-    def get_db_path(self, *, debag: bool = False) -> Path:
+    def get_db_path(self, *, debug: bool = False) -> Path:
         """Return db path."""
-        if debag:
+        if debug:
             db_path = Path.cwd() / "data"
         else:
             db_path = Path.cwd().parent.parent

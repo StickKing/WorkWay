@@ -1,13 +1,11 @@
 """Module constain setting page."""
 from __future__ import annotations
 
+import re
 import shutil
-from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING
-from typing import Sequence
 
-from flet import BorderRadius
 from flet import Column
 from flet import Container
 from flet import ElevatedButton
@@ -22,39 +20,16 @@ from flet import Switch
 from flet import Text
 from flet import TextThemeStyle
 from flet import ThemeMode
-from flet import colors
 from flet import icons
 
 from .common import AlertDialogInfo
+from .common import ContainerWithBorder
 
 
 if TYPE_CHECKING:
     from flet import ControlEvent
 
     from workway.core.subcores import Settings
-
-
-class ContainerWithBorder(Container):
-    """Container with color border and bg color."""
-
-    def __init__(self, controls: Sequence) -> None:
-        """Initialize."""
-        super().__init__(
-            content=Column(controls),
-            margin=Margin(0, 0, 0, 10),
-            padding=Padding(left=15, top=10, right=0, bottom=10),
-            bgcolor=colors.SURFACE_VARIANT,
-            border_radius=BorderRadius(
-                top_left=12,
-                top_right=12,
-                bottom_left=12,
-                bottom_right=12,
-            ),
-        )
-
-    def build(self) -> None:
-        """Change width by page width."""
-        self.width = self.page.width  # type: ignore
 
 
 class SettingPage(Container):
@@ -64,7 +39,7 @@ class SettingPage(Container):
         """Initialize."""
         self.core = core
 
-        self.db_zip_name = "work_way_db.zip"
+        self.db_zip_name = "work_way_db"
 
         self.theme_radio_group = RadioGroup(
             content=Row([
@@ -107,9 +82,9 @@ class SettingPage(Container):
                     ElevatedButton(
                         icon=icons.SAVE,
                         text="Выгрузить в файл",
-                        on_click=lambda e: self.file_picker_save.save_file(
-                            "Сохранить базу данных",
-                            self.db_zip_name,
+                        on_click=lambda e: self.file_picker_save.get_directory_path(
+                            "Укажите куда сохранить work_db.zip",
+                            # self.db_zip_name,
                         ),
                     ),
                 ]),
@@ -129,25 +104,33 @@ class SettingPage(Container):
                 self.core.set_theme("light")
         self.page.update()
 
-    @cached_property
+    @property
     def file_picker_save(self) -> "FilePicker":
         """Create file picker and return it."""
-        file_picker = FilePicker(
-            on_result=self.create_db_zip,
-        )
-        self.page.overlay.append(file_picker)
         self.page.update()
-        return file_picker
+        return self.page.overlay[0]
 
-    @cached_property
+    @property
     def file_picker_upload(self) -> "FilePicker":
         """Create file picker and return it."""
-        file_picker = FilePicker(
-            on_result=self.upload_db_zip,
-        )
-        self.page.overlay.append(file_picker)
         self.page.update()
-        return file_picker
+        return self.page.overlay[1]
+
+    def get_archive_name(self, path: Path) -> str:
+        """Check file name in yser path and create archive name."""
+        archive_name = "work_way_db"
+        index = 0
+        for file in path.iterdir():
+            if re.match(r"work_way_db[0-9]+\.zip", file.name):
+                index_new = re.findall(r"[0-9]+", file.name)
+                index_new = int(index_new[0]) + 1
+                if index_new > index:
+                    index = index_new
+            if re.match(r"work_way_db\.zip", file.name) and index == 0:
+                index = 1
+        if index:
+            return f"{archive_name}{index}"
+        return archive_name
 
     def create_db_zip(self, event: "FilePickerResultEvent") -> None:
         """Create db zip archive."""
@@ -155,21 +138,16 @@ class SettingPage(Container):
             return
         save_path: Path = self.core.db.normalize_path(Path(event.path))
 
-        if save_path.is_dir():
+        try:
             archive_path = shutil.make_archive(
-                self.db_zip_name,
+                self.get_archive_name(save_path),
                 "zip",
                 self.core.db_path.parent,
             )
+            archive_path = self.core.db.normalize_path(Path(archive_path))
             shutil.move(archive_path, str(save_path))
-            return
-
-        archive_path = shutil.make_archive(
-            save_path.name,
-            "zip",
-            self.core.db_path.parent,
-        )
-        shutil.move(archive_path, str(save_path.parent))
+        except Exception:
+            self.page.open(AlertDialogInfo("Ошибка", "Что-то пошло не так"))
 
     def upload_db_zip(self, event: "FilePickerResultEvent") -> None:
         """Upload data base."""
@@ -183,3 +161,18 @@ class SettingPage(Container):
             self.page.open(AlertDialogInfo("Ошибка", "Что-то пошло не так"))
 
         self.core.reinitialize_db()
+
+    def build(self) -> None:
+        if self.page.overlay:
+            return
+        self.page.overlay.append(
+            FilePicker(
+                on_result=self.create_db_zip,
+            )
+        )
+        self.page.overlay.append(
+            FilePicker(
+                on_result=self.upload_db_zip,
+            )
+        )
+        # self.page.update()

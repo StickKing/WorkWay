@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "WorkWay"
-version = "0.1.4"
+version = "0.1.5"
 description = "WorkWay."
 authors = ["Anton Panteleev <mainsample@yandex.ru>"]
 readme = "README.md"
@@ -27,5 +27,7 @@ unfixable = [
     "PLR5501",
 ]
 
-[tool.flet.flutter.pubspec.dependency_overrides]
-file_picker = "8.1.4"
+[tool.flet.android.permission]
+"android.permission.READ_EXTERNAL_STORAGE" = true
+"android.permission.WRITE_EXTERNAL_STORAGE" = true
+"android.permission.MANAGE_EXTERNAL_STORAGE" = true

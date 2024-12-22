@@ -3,19 +3,23 @@ from typing import TYPE_CHECKING
 from typing import Any
 from typing import Callable
 from typing import MutableMapping
+from typing import Sequence
 
 from flet import AlertDialog
 from flet import Alignment
+from flet import BorderRadius
 from flet import BottomSheet
 from flet import Column
 from flet import Container
 from flet import CrossAxisAlignment
 from flet import MainAxisAlignment
+from flet import Margin
 from flet import Padding
 from flet import Row
 from flet import Text
 from flet import TextButton
 from flet import TextStyle
+from flet import colors
 
 
 if TYPE_CHECKING:
@@ -117,3 +121,34 @@ class AlertDialogInfo(AlertDialog):
     def close_dialog(self, event: "ControlEvent") -> None:
         """Close this dialog."""
         self.page.close(self)
+
+
+class ContainerWithBorder(Container):
+    """Container with color border and bg color."""
+
+    def __init__(
+        self,
+        controls: Sequence | None = None,
+        content: Any = None,
+        bg_color: colors = colors.SURFACE_VARIANT,
+    ) -> None:
+        """Initialize."""
+        content = content
+        if content is None:
+            content = Column(controls)
+        super().__init__(
+            content=Column(controls),
+            margin=Margin(0, 0, 0, 10),
+            padding=Padding(left=15, top=10, right=0, bottom=10),
+            bgcolor=bg_color,
+            border_radius=BorderRadius(
+                top_left=12,
+                top_right=12,
+                bottom_left=12,
+                bottom_right=12,
+            ),
+        )
+
+    def build(self) -> None:
+        """Change width by page width."""
+        self.width = self.page.width  # type: ignore
