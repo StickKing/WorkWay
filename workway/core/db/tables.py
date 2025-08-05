@@ -147,6 +147,7 @@ class WorkRow(_RowDataClsMixin, PretifyMoneyMixin):
     state: int
     value: float
     json: str
+    description: str
 
     # Required fields for row-cls
     table: Table
@@ -199,6 +200,15 @@ class WorkRow(_RowDataClsMixin, PretifyMoneyMixin):
         """Return other income."""
         json_data = json.loads(self.json)
         return json_data["other_income"]
+
+    @property
+    def pretty_description(self) -> str:
+        """Return correct one line description."""
+        max_len = 20
+        description = self.description.replace("\n", " ")
+        if len(description) > max_len:
+            description = description[:max_len] + "..."
+        return description
 
 
 class WorkTable(Table):

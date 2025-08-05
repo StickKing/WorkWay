@@ -412,6 +412,7 @@ class WorkMaker(BaseCore):
         start_datetime: datetime,
         end_datetime: datetime,
         name: str | None = "",
+        description: str | None = "",
         rework: TCompleteRework | None = None,
         other_income: list[TCompleteOtherIncome] | None = None,
     ) -> None:
@@ -439,6 +440,7 @@ class WorkMaker(BaseCore):
         json_field = {"other_income": other_income}
         work_day = {
             "name": name,
+            "description": description,
             "start_datetime": start_datetime,
             "end_datetime": end_datetime,
             "hours": 0,
@@ -489,6 +491,7 @@ class WorkMaker(BaseCore):
         start_datetime: datetime,
         end_datetime: datetime,
         name: str | None = "",
+        description: str | None = "",
         rework: TCompleteRework | None = None,
         other_income: list[TCompleteOtherIncome] | None = None,
     ) -> None:
@@ -524,6 +527,7 @@ class WorkMaker(BaseCore):
         json_field = {"other_income": other_income}
         work_day = {
             "name": name,
+            "description": description,
             "start_datetime": start_datetime,
             "end_datetime": end_datetime,
             "hours": 0,

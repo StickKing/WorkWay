@@ -16,10 +16,12 @@ from flet import Padding
 from flet import Row
 from flet import ScrollMode
 from flet import Text
+from flet import TextField
 from flet import TextStyle
 from flet import TextThemeStyle
 from flet import alignment
 from flet import colors
+from flet import InputBorder
 
 from workway.core.subcores.work import Сalculation
 from workway.gui.pages.common import AlertDialogInfo
@@ -58,6 +60,7 @@ class WorkTile(ListTile):
                 width=100,
             ),
             title=Text(dt, style=TextStyle(size=14)),
+            subtitle=Text(work.pretty_description),
             trailing=Text(f"+{work.pretify_money}", style=style),
             on_click=lambda e: self.page.open(
                 WorkInfoSheet(core, work),
@@ -92,12 +95,28 @@ class WorkInfoSheet(BottomSheet):
                             Container(
                                 Text(
                                     "{} - {}".format(
-                                        work.start_dttm.strftime(r"%d %B %Y %H:%M"),
-                                        work.end_dttm.strftime(r"%d %B %Y %H:%M"),
+                                        work.start_dttm.strftime(
+                                            r"%d %B %Y %H:%M",
+                                        ),
+                                        work.end_dttm.strftime(
+                                            r"%d %B %Y %H:%M",
+                                        ),
                                     ),
                                     theme_style=TextThemeStyle.BODY_MEDIUM,
                                 ),
                                 alignment=alignment.center,
+                            ),
+                            Container(
+                                TextField(
+                                    label="Комментарий",
+                                    value=work.description,
+                                    multiline=True,
+                                    read_only=True,
+                                    border=InputBorder.NONE,
+                                    # theme_style=TextThemeStyle.TITLE_LARGE,
+                                ),
+                                # alignment=alignment.center,
+                                visible=bool(work.description)
                             ),
                             Row(
                                 [

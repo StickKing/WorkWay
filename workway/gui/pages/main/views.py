@@ -246,6 +246,10 @@ class CreateWorkDayView(View):
             label="Наименование",
             autofocus=True,
         )
+        self.description_control = TextField(
+            label="Комментарий",
+            multiline=True,
+        )
 
         # labels
         self.start_dt_label = ElevatedButton(
@@ -407,6 +411,22 @@ class CreateWorkDayView(View):
             controls=[
                 Container(
                     self.name_field,
+                    border_radius=BorderRadius(
+                        top_left=0,
+                        top_right=0,
+                        bottom_left=12,
+                        bottom_right=12,
+                    ),
+                    bgcolor=colors.SURFACE_VARIANT,
+                    padding=Padding(
+                        left=10,
+                        top=15,
+                        right=10,
+                        bottom=15,
+                    ),
+                ),
+                Container(
+                    self.description_control,
                     border_radius=BorderRadius(
                         top_left=0,
                         top_right=0,
@@ -727,6 +747,7 @@ class CreateWorkDayView(View):
             self.completed_start_dttm,
             self.completed_end_dttm,
             name=self.name_field.value,
+            description=self.description_control.value,
             rework=self.completed_rework,
             other_income=self.completed_other_income,
         )
@@ -812,6 +833,11 @@ class UpdateWorkView(CreateWorkDayView):
             value=work_item.name,
             label="Наименование",
             autofocus=True,
+        )
+        self.description_control = TextField(
+            value=work_item.description,
+            label="Комментарий",
+            multiline=True,
         )
 
         # labels
@@ -986,7 +1012,7 @@ class UpdateWorkView(CreateWorkDayView):
         View.__init__(
             self,
             appbar=AppBar(
-                title=Text("Создание нового выхода на работу"),
+                title=Text("Изменение выхода на работу"),
                 bgcolor=colors.SURFACE_VARIANT,
             ),
             scroll=ScrollMode.HIDDEN,
@@ -994,6 +1020,22 @@ class UpdateWorkView(CreateWorkDayView):
             controls=[
                 Container(
                     self.name_field,
+                    border_radius=BorderRadius(
+                        top_left=0,
+                        top_right=0,
+                        bottom_left=12,
+                        bottom_right=12,
+                    ),
+                    bgcolor=colors.SURFACE_VARIANT,
+                    padding=Padding(
+                        left=10,
+                        top=15,
+                        right=10,
+                        bottom=15,
+                    ),
+                ),
+                Container(
+                    self.description_control,
                     border_radius=BorderRadius(
                         top_left=0,
                         top_right=0,
@@ -1079,6 +1121,7 @@ class UpdateWorkView(CreateWorkDayView):
             self.completed_start_dttm,
             self.completed_end_dttm,
             name=self.name_field.value,
+            description=self.description_control.value,
             rework=self.completed_rework,
             other_income=self.completed_other_income,
         )

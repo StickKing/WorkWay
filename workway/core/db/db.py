@@ -104,6 +104,7 @@ class DataBase(DB):
                 "value": Real(),
                 "json": Text(),
                 "state": Integer(default=1),
+                "description": Text(default="")
             },
             foreign_keys=(
                 ForeignKey("rate_id", "Rate", "id"),
@@ -133,6 +134,7 @@ class DataBase(DB):
     def migrations(self) -> None:
         """Migrations for data base."""
         migrations = (
+            "ALTER TABLE Work ADD COLUMN description TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE Work ADD COLUMN json TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE Bonus ADD COLUMN type TEXT NOT NULL DEFAULT 'fix'",
             (
