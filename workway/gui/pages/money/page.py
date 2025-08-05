@@ -15,8 +15,8 @@ from flet import Row
 from flet import ScrollMode
 from flet import Text
 from flet import TextThemeStyle
-from flet import colors
-from flet import icons
+from flet import Colors
+from flet import Icons
 
 from .modals import BonusModal
 from .modals import RateModal
@@ -57,7 +57,7 @@ class MoneyPage(Column):
                 ]),
                 margin=Margin(left=0, top=0, right=0, bottom=10),
                 padding=Padding(left=15, top=10, right=15, bottom=10),
-                bgcolor=colors.SURFACE_VARIANT,
+                bgcolor=Colors.SURFACE_VARIANT,
                 border_radius=BorderRadius(
                     top_left=0,
                     top_right=0,
@@ -73,7 +73,7 @@ class MoneyPage(Column):
                     ),
                     self.bonuses,
                 ]),
-                bgcolor=colors.SURFACE_VARIANT,
+                bgcolor=Colors.SURFACE_VARIANT,
                 padding=Padding(left=15, top=10, right=15, bottom=10),
                 border_radius=BorderRadius(
                     top_left=12,
@@ -103,8 +103,8 @@ class MoneyPage(Column):
             for rate in self.money.all_rate()
         ]
         add_button = IconButton(
-            icon=icons.ADD,
-            style=ButtonStyle(bgcolor=colors.BLACK),
+            icon=Icons.ADD,
+            style=ButtonStyle(bgcolor=Colors.BLACK),
             on_click=self.open_rate_modal,
             # on_click=lambda e: self.page.open(  # type: ignore
             #     RateModal(self.money, self.add_rate)
@@ -142,8 +142,8 @@ class MoneyPage(Column):
             for bonus in self.money.all_bonus()
         ]
         add_button = IconButton(
-            icon=icons.ADD,
-            style=ButtonStyle(bgcolor=colors.BLACK),
+            icon=Icons.ADD,
+            style=ButtonStyle(bgcolor=Colors.BLACK),
             on_click=self.open_bonus_modal,
             width=50,
             height=50,

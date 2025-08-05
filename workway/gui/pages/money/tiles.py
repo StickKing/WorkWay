@@ -7,7 +7,7 @@ from flet import ListTile
 from flet import PopupMenuButton
 from flet import PopupMenuItem
 from flet import Text
-from flet import icons
+from flet import Icons
 
 from workway.gui.pages.common import AlertDialogInfo
 
@@ -29,11 +29,11 @@ class RateTile(ListTile):
         self.core = core
         self.rate = rate
         super().__init__(
-            leading=Icon(icons.ATTACH_MONEY),
+            leading=Icon(Icons.ATTACH_MONEY),
             title=Text(self.rate.name),
             subtitle=Text(str(self.rate.pretify_money)),
             trailing=PopupMenuButton(
-                icon=icons.MORE_VERT,
+                icon=Icons.MORE_VERT,
                 items=[
                     PopupMenuItem(
                         text="Изменить",
@@ -100,11 +100,11 @@ class BonusTile(ListTile):
         self.core = core
         self.bonus = bonus
         super().__init__(
-            leading=Icon(icons.ATTACH_MONEY),
+            leading=Icon(Icons.ATTACH_MONEY),
             title=Text(self.bonus.name),
             subtitle=Text(str(self.bonus.pretify_money)),
             trailing=PopupMenuButton(
-                icon=icons.MORE_VERT,
+                icon=Icons.MORE_VERT,
                 items=[
                     PopupMenuItem(
                         text="Изменить",

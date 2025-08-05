@@ -20,7 +20,7 @@ from flet import Switch
 from flet import Text
 from flet import TextThemeStyle
 from flet import ThemeMode
-from flet import icons
+from flet import Icons
 
 from .common import AlertDialogInfo
 from .common import ContainerWithBorder
@@ -72,7 +72,7 @@ class SettingPage(Container):
                         theme_style=TextThemeStyle.TITLE_MEDIUM,
                     ),
                     ElevatedButton(
-                        icon=icons.UPLOAD_FILE,
+                        icon=Icons.UPLOAD_FILE,
                         text="Загрузить базу",
                         on_click=lambda e: self.file_picker_upload.pick_files(
                             "Выберите архив с базой",
@@ -80,7 +80,7 @@ class SettingPage(Container):
                         ),
                     ),
                     ElevatedButton(
-                        icon=icons.SAVE,
+                        icon=Icons.SAVE,
                         text="Выгрузить в файл",
                         on_click=lambda e: self.file_picker_save.get_directory_path(
                             "Укажите куда сохранить work_db.zip",

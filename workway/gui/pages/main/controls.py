@@ -20,7 +20,7 @@ from flet import TextField
 from flet import TextStyle
 from flet import TextThemeStyle
 from flet import alignment
-from flet import colors
+from flet import Colors
 from flet import InputBorder
 
 from workway.core.subcores.work import Сalculation
@@ -122,8 +122,8 @@ class WorkInfoSheet(BottomSheet):
                                 [
                                     ElevatedButton(
                                         "Удалить",
-                                        bgcolor=colors.ERROR_CONTAINER,
-                                        color=colors.WHITE,
+                                        bgcolor=Colors.ERROR_CONTAINER,
+                                        color=Colors.WHITE,
                                         on_click=lambda e: self.page.open(
                                             AlertDialogInfo(
                                                 "Удаление выхода на работу",

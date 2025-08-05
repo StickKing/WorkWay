@@ -32,9 +32,9 @@ from flet import TextStyle
 from flet import TextThemeStyle
 from flet import TimePicker
 from flet import View
-from flet import colors
+from flet import Colors
 from flet import dropdown
-from flet import icons
+from flet import Icons
 
 from workway.core.db.tables import WorkRow
 from workway.gui.validators import is_number
@@ -159,7 +159,7 @@ class OtherIncome(Row):
             self.name_field,
             self.money_field,
             IconButton(
-                icon=icons.HIGHLIGHT_REMOVE,
+                icon=Icons.HIGHLIGHT_REMOVE,
                 on_click=self.delete_this,
             ),
         ])
@@ -230,7 +230,7 @@ class CreateWorkDayView(View):
                 self.rework_fix_sum,
             ]),
             visible=False,
-            bgcolor=colors.ON_ERROR,
+            bgcolor=Colors.ON_ERROR,
             border_radius=12,
             padding=Padding(
                 left=10,
@@ -393,8 +393,8 @@ class CreateWorkDayView(View):
                 theme_style=TextThemeStyle.TITLE_MEDIUM,
             ),
             IconButton(
-                icon=icons.ADD,
-                style=ButtonStyle(bgcolor=colors.BLACK),
+                icon=Icons.ADD,
+                style=ButtonStyle(bgcolor=Colors.BLACK),
                 on_click=self.add_other_income,
                 width=50,
                 height=50,
@@ -404,7 +404,7 @@ class CreateWorkDayView(View):
         super().__init__(
             appbar=AppBar(
                 title=Text("Создание нового выхода на работу"),
-                bgcolor=colors.SURFACE_VARIANT,
+                bgcolor=Colors.SURFACE_VARIANT,
             ),
             scroll=ScrollMode.HIDDEN,
             padding=0,
@@ -417,7 +417,7 @@ class CreateWorkDayView(View):
                         bottom_left=12,
                         bottom_right=12,
                     ),
-                    bgcolor=colors.SURFACE_VARIANT,
+                    bgcolor=Colors.SURFACE_VARIANT,
                     padding=Padding(
                         left=10,
                         top=15,
@@ -433,7 +433,7 @@ class CreateWorkDayView(View):
                         bottom_left=12,
                         bottom_right=12,
                     ),
-                    bgcolor=colors.SURFACE_VARIANT,
+                    bgcolor=Colors.SURFACE_VARIANT,
                     padding=Padding(
                         left=10,
                         top=15,
@@ -463,7 +463,7 @@ class CreateWorkDayView(View):
                         bottom=15,
                     ),
                     border_radius=12,
-                    bgcolor=colors.SURFACE_VARIANT,
+                    bgcolor=Colors.SURFACE_VARIANT,
                 ),
                 Container(
                     Column([
@@ -479,7 +479,7 @@ class CreateWorkDayView(View):
                         bottom=5,
                     ),
                     border_radius=12,
-                    bgcolor=colors.SURFACE_VARIANT,
+                    bgcolor=Colors.SURFACE_VARIANT,
                 ),
                 self.rework_column,
                 Container(
@@ -818,7 +818,7 @@ class UpdateWorkView(CreateWorkDayView):
                 self.rework_fix_sum,
             ]),
             visible=bool(work_item.rework_id),
-            bgcolor=colors.ON_ERROR,
+            bgcolor=Colors.ON_ERROR,
             border_radius=12,
             padding=Padding(
                 left=10,
@@ -1001,8 +1001,8 @@ class UpdateWorkView(CreateWorkDayView):
             ),
             *other_income_fields,
             IconButton(
-                icon=icons.ADD,
-                style=ButtonStyle(bgcolor=colors.BLACK),
+                icon=Icons.ADD,
+                style=ButtonStyle(bgcolor=Colors.BLACK),
                 on_click=self.add_other_income,
                 width=50,
                 height=50,
@@ -1013,7 +1013,7 @@ class UpdateWorkView(CreateWorkDayView):
             self,
             appbar=AppBar(
                 title=Text("Изменение выхода на работу"),
-                bgcolor=colors.SURFACE_VARIANT,
+                bgcolor=Colors.SURFACE_VARIANT,
             ),
             scroll=ScrollMode.HIDDEN,
             padding=0,
@@ -1026,7 +1026,7 @@ class UpdateWorkView(CreateWorkDayView):
                         bottom_left=12,
                         bottom_right=12,
                     ),
-                    bgcolor=colors.SURFACE_VARIANT,
+                    bgcolor=Colors.SURFACE_VARIANT,
                     padding=Padding(
                         left=10,
                         top=15,
@@ -1042,7 +1042,7 @@ class UpdateWorkView(CreateWorkDayView):
                         bottom_left=12,
                         bottom_right=12,
                     ),
-                    bgcolor=colors.SURFACE_VARIANT,
+                    bgcolor=Colors.SURFACE_VARIANT,
                     padding=Padding(
                         left=10,
                         top=15,
@@ -1072,7 +1072,7 @@ class UpdateWorkView(CreateWorkDayView):
                         bottom=15,
                     ),
                     border_radius=12,
-                    bgcolor=colors.SURFACE_VARIANT,
+                    bgcolor=Colors.SURFACE_VARIANT,
                 ),
                 Container(
                     Column([
@@ -1088,7 +1088,7 @@ class UpdateWorkView(CreateWorkDayView):
                         bottom=5,
                     ),
                     border_radius=12,
-                    bgcolor=colors.SURFACE_VARIANT,
+                    bgcolor=Colors.SURFACE_VARIANT,
                 ),
                 self.rework_column,
                 Container(

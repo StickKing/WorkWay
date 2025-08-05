@@ -19,7 +19,7 @@ from flet import Row
 from flet import Text
 from flet import TextButton
 from flet import TextStyle
-from flet import colors
+from flet import Colors
 
 
 if TYPE_CHECKING:
@@ -130,7 +130,7 @@ class ContainerWithBorder(Container):
         self,
         controls: Sequence | None = None,
         content: Any = None,
-        bg_color: colors = colors.SURFACE_VARIANT,
+        bg_color: Colors = Colors.ON_SURFACE_VARIANT,
     ) -> None:
         """Initialize."""
         content = content

@@ -9,7 +9,7 @@ from flet import NavigationBarDestination
 from flet import SafeArea
 from flet import ScrollMode
 from flet import View
-from flet import icons
+from flet import Icons
 
 from .pages import MainPage
 from .pages import MoneyPage
@@ -38,15 +38,15 @@ class MainComponent(View):
             navigation_bar=NavigationBar(
                 destinations=[
                     NavigationBarDestination(
-                        icon=icons.HOME,
+                        icon=Icons.HOME,
                         label="Главная",
                     ),
                     NavigationBarDestination(
-                        icon=icons.ATTACH_MONEY,
+                        icon=Icons.ATTACH_MONEY,
                         label="Ставки и надбавки",
                     ),
                     NavigationBarDestination(
-                        icon=icons.SETTINGS,
+                        icon=Icons.SETTINGS,
                         label="Настройки",
                     ),
                 ],
@@ -55,7 +55,7 @@ class MainComponent(View):
             appbar=AppBar(visible=False),
             scroll=ScrollMode.HIDDEN,
             floating_action_button=FloatingActionButton(
-                icon=icons.ADD,
+                icon=Icons.ADD,
                 on_click=self.floating_action,
             ),
             controls=[

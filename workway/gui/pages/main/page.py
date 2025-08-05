@@ -13,7 +13,7 @@ from flet import Margin
 from flet import Padding
 from flet import Text
 from flet import TextThemeStyle
-from flet import colors
+from flet import Colors
 from flet import dropdown
 
 from .controls import WorkTile
@@ -58,7 +58,7 @@ class MainPage(Column):
                 bottom_left=0,
                 bottom_right=0,
             ),
-            bgcolor=colors.SURFACE_VARIANT,
+            bgcolor=Colors.ON_SURFACE_VARIANT,
         )
 
         super().__init__(
@@ -68,7 +68,7 @@ class MainPage(Column):
                         self.dropdown_year,
                         self.dropdown_month,
                     ]),
-                    bgcolor=colors.SURFACE_VARIANT,
+                    bgcolor=Colors.ON_SURFACE_VARIANT,
                     border_radius=BorderRadius(
                         top_left=0,
                         top_right=0,
@@ -110,7 +110,7 @@ class MainPage(Column):
                 bottom_left=0,
                 bottom_right=0,
             ),
-            # bgcolor=colors.SURFACE_VARIANT,
+            # bgcolor=Colors.SURFACE_VARIANT,
         )
         works.append(bottom_container)
         return works
